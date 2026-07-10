@@ -82,7 +82,11 @@
           <h4>${p.name}</h4>
           <p class="product-desc">${p.description || ""}</p>
           <div class="product-foot"><span class="price">₱${Number(p.price).toFixed(2)}</span></div>
-          <button class="btn-sm" style="width:100%;margin-top:6px;" onclick='md_addToCart(${JSON.stringify(p)})'>Add to basket</button>
+          ${
+            p.for_sale === false
+              ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
+              : `<button class="btn-sm" style="width:100%;margin-top:6px;" onclick='md_addToCart(${JSON.stringify(p)})'>Add to basket</button>`
+          }
         </div>
       </div>`).join("");
   });
