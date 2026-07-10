@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Museo Dabawenyo — MuseoDavao</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="page-hero">
+  <div class="container">
+    <div class="breadcrumb"><a href="index.html">Home</a> / Wing I — Heritage</div>
+    <h1>Museo Dabawenyo</h1>
+    <p class="lede" style="margin-top:14px;">The city's heritage museum, tracing Davao's story from its
+      indigenous roots through the Spanish, American, and Japanese-era history to the present day.</p>
+  </div>
+</div>
+<div class="container">
+  <div class="info-strip">
+    <div><span class="eyebrow">Address</span>Magsaysay Park, Davao City</div>
+    <div><span class="eyebrow">Hours</span>Tue–Sun, 8:00 AM – 5:00 PM (Closed Mondays)</div>
+    <div><span class="eyebrow">Entrance</span>Free (donations welcome)</div>
+  </div>
+</div>
+
+<section>
+  <div class="container grid-2">
+    <div>
+      <span class="eyebrow">About the wing</span>
+      <h2>A house built for the city's memory</h2>
+      <p>Housed inside the old Court of First Instance building fronting Magsaysay Park, Museo Dabawenyo
+        is Davao City's own history museum. Its galleries move chronologically — starting with the
+        Bagobo, Mandaya, Kalagan, and other indigenous communities native to the region, through
+        Spanish and American colonial administration, the Japanese occupation, and into the postwar
+        growth that shaped modern Davao.</p>
+      <p>It's a compact museum, easy to cover in under an hour, and a good first stop before visiting
+        the other two wings — the context here makes the natural history and regional collections
+        elsewhere land differently.</p>
+    </div>
+    <div>
+      <span class="eyebrow">Good to know before you go</span>
+      <ul style="padding-left:18px;line-height:1.9;">
+        <li>Free admission, though a donation box supports upkeep.</li>
+        <li>Closed on Mondays and select public holidays.</li>
+        <li>Photography is generally allowed; flash is discouraged near textiles and documents.</li>
+        <li>Guided walkthroughs can sometimes be arranged for groups — ask at the front desk.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--parchment);">
+  <div class="container">
+    <div class="section-head">
+      <div><span class="eyebrow">From this wing's shop</span><h2>Museo Dabawenyo souvenirs</h2></div>
+      <a href="shop.html" class="btn btn-dark">Shop all items</a>
+    </div>
+    <div class="product-grid" id="wingProductGrid"><p class="empty-note">Loading…</p></div>
+  </div>
+</section>
+
+<script>window.MD_PAGE = "dabawenyo";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/chatbot.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/events.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const grid = document.getElementById("wingProductGrid");
+    if (typeof CONFIG_OK !== "undefined" && !CONFIG_OK) { grid.innerHTML = `<p class="empty-note">Connect Supabase to load this wing's shop items.</p>`; return; }
+    const { data, error } = await supabase.from("products").select("*").eq("museum_id","dabawenyo").eq("is_active", true);
+    if (error || !data || data.length === 0) { grid.innerHTML = `<p class="empty-note">No items tagged to this wing yet.</p>`; return; }
+    grid.innerHTML = data.map(p => `
+      <div class="product-card">
+        <div class="product-media">${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `<span class="ph">No image yet</span>`}</div>
+        <div class="product-body">
+          <span class="product-museum">Museo Dabawenyo</span>
+          <h4>${p.name}</h4>
+          <p class="product-desc">${p.description || ""}</p>
+          <div class="product-foot"><span class="price">₱${Number(p.price).toFixed(2)}</span></div>
+          <button class="btn-sm" style="width:100%;margin-top:6px;" onclick='md_addToCart(${JSON.stringify(p)})'>Add to basket</button>
+        </div>
+      </div>`).join("");
+  });
+</script>
+</body>
+</html>

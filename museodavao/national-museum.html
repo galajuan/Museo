@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>National Museum of the Philippines – Davao — MuseoDavao</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="page-hero">
+  <div class="container">
+    <div class="breadcrumb"><a href="index.html">Home</a> / Wing III — Regional</div>
+    <h1>National Museum — Davao</h1>
+    <p class="lede" style="margin-top:14px;">The Davao branch of the National Museum of the Philippines,
+      covering Mindanao's archaeology, ethnography, and natural history.</p>
+  </div>
+</div>
+<div class="container">
+  <div class="info-strip">
+    <div><span class="eyebrow">Address</span>San Pedro Street, Davao City</div>
+    <div><span class="eyebrow">Hours</span>Tue–Sun, 9:00 AM – 4:00 PM (Closed Mondays)</div>
+    <div><span class="eyebrow">Entrance</span>Free</div>
+  </div>
+</div>
+
+<section>
+  <div class="container grid-2">
+    <div>
+      <span class="eyebrow">About the wing</span>
+      <h2>The regional picture</h2>
+      <p>As one of the National Museum of the Philippines' regional branches, this Davao outpost widens
+        the lens beyond the city itself — its collection spans archaeological finds, ethnographic
+        material from Mindanao's indigenous peoples, and specimens from the island's natural history.</p>
+      <p>It pairs well with Museo Dabawenyo: where that museum tells Davao's own story, this one places
+        it inside the broader Mindanao context.</p>
+    </div>
+    <div>
+      <span class="eyebrow">Good to know before you go</span>
+      <ul style="padding-left:18px;line-height:1.9;">
+        <li>Free admission, as with all National Museum branches nationwide.</li>
+        <li>Closed Mondays and on national holidays — check ahead around long weekends.</li>
+        <li>Bag checks are standard at the entrance.</li>
+        <li>Some galleries rotate temporary exhibits — check the events section for what's currently on.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section style="background:var(--parchment);">
+  <div class="container">
+    <div class="section-head">
+      <div><span class="eyebrow">From this wing's shop</span><h2>National Museum souvenirs</h2></div>
+      <a href="shop.html" class="btn btn-dark">Shop all items</a>
+    </div>
+    <div class="product-grid" id="wingProductGrid"><p class="empty-note">Loading…</p></div>
+  </div>
+</section>
+
+<script>window.MD_PAGE = "national";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/chatbot.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/events.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const grid = document.getElementById("wingProductGrid");
+    if (typeof CONFIG_OK !== "undefined" && !CONFIG_OK) { grid.innerHTML = `<p class="empty-note">Connect Supabase to load this wing's shop items.</p>`; return; }
+    const { data, error } = await supabase.from("products").select("*").eq("museum_id","national").eq("is_active", true);
+    if (error || !data || data.length === 0) { grid.innerHTML = `<p class="empty-note">No items tagged to this wing yet.</p>`; return; }
+    grid.innerHTML = data.map(p => `
+      <div class="product-card">
+        <div class="product-media">${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `<span class="ph">No image yet</span>`}</div>
+        <div class="product-body">
+          <span class="product-museum">National Museum</span>
+          <h4>${p.name}</h4>
+          <p class="product-desc">${p.description || ""}</p>
+          <div class="product-foot"><span class="price">₱${Number(p.price).toFixed(2)}</span></div>
+          <button class="btn-sm" style="width:100%;margin-top:6px;" onclick='md_addToCart(${JSON.stringify(p)})'>Add to basket</button>
+        </div>
+      </div>`).join("");
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MuseoDavao — Museo Dabawenyo, D'Bone Collection & National Museum Davao</title>
+<meta name="description" content="One portal to Davao City's three museums. Plan your visit, follow current exhibits, and shop official souvenirs.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<section class="hero"
+  style="--hero-image:url('css/images/Hero2.jpg');">
+  <div class="hero-inner">
+    <div class="hero-plaque">Davao City · Three Museums, One Portal</div>
+    <h1>The story of Davao,<br><em>kept and on display.</em></h1>
+    <p class="lede">MuseoDavao brings together Museo Dabawenyo, the D'Bone Collector Museum, and the
+      National Museum of the Philippines–Davao — one place to plan your visit, catch current exhibits,
+      and take a piece of the collection home.</p>
+    <div class="hero-actions">
+      <a href="#wings" class="btn btn-brass">Explore the wings</a>
+      <a href="shop.html" class="btn btn-outline">Visit the museum shop</a>
+    </div>
+  </div>
+</section>
+
+<section id="wings">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Wing I · II · III</span>
+        <h2>Three museums, three worlds</h2>
+      </div>
+    </div>
+  </div>
+  <div class="wings">
+    <a href="museo-dabawenyo.html" class="wing-card" data-accent="dabawenyo">
+      <span class="wing-tag">Wing I — Heritage</span>
+      <h3>Museo Dabawenyo</h3>
+      <p class="wing-desc">The city's own history museum — from indigenous Bagobo and Mandaya roots through the colonial era to modern Davao, housed in the old Court of First Instance.</p>
+      <span class="wing-link">Plan your visit</span>
+    </a>
+    <a href="dbone-collection.html" class="wing-card" data-accent="dbone">
+      <span class="wing-tag">Wing II — Natural History</span>
+      <h3>D'Bone Collector Museum</h3>
+      <p class="wing-desc">Rearticulated whale, dolphin, and marine skeletons rescued and preserved by conservationist Darrell Blatchley — a museum with a conservation mission.</p>
+      <span class="wing-link">Plan your visit</span>
+    </a>
+    <a href="national-museum.html" class="wing-card" data-accent="national">
+      <span class="wing-tag">Wing III — Regional</span>
+      <h3>National Museum — Davao</h3>
+      <p class="wing-desc">Mindanao's archaeology, ethnography, and natural history, presented by the National Museum of the Philippines' Davao branch.</p>
+      <span class="wing-link">Plan your visit</span>
+    </a>
+  </div>
+</section>
+
+<section id="events" style="background:var(--parchment);">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Happening now</span>
+        <h2>Current exhibits & events</h2>
+      </div>
+    </div>
+    <div class="events-strip" id="eventsStrip">
+      <p class="empty-note">Loading events…</p>
+    </div>
+  </div>
+</section>
+
+<section id="shop-preview">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Bring it home</span>
+        <h2>From the museum shop</h2>
+      </div>
+      <a href="shop.html" class="btn btn-dark">Shop all items</a>
+    </div>
+    <div class="product-grid" id="homeProductGrid">
+      <p class="empty-note">Loading products…</p>
+    </div>
+  </div>
+</section>
+
+<script>window.MD_PAGE = "home";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/chatbot.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/events.js"></script>
+<script>
+  // small preview grid on the home page reuses shop styling but a lighter loader
+  document.addEventListener("DOMContentLoaded", async () => {
+    const grid = document.getElementById("homeProductGrid");
+    if (typeof CONFIG_OK !== "undefined" && !CONFIG_OK) {
+      grid.innerHTML = `<p class="empty-note">Connect Supabase to show shop items here. See README.md.</p>`;
+      return;
+    }
+    const { data, error } = await supabase.from("products").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(3);
+    if (error || !data || data.length === 0) {
+      grid.innerHTML = `<p class="empty-note">No products yet — add some from the Admin Dashboard.</p>`;
+      return;
+    }
+    grid.innerHTML = data.map(p => `
+      <div class="product-card">
+        <div class="product-media">${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `<span class="ph">No image yet</span>`}</div>
+        <div class="product-body">
+          <span class="product-museum">${MD_MUSEUM_LABEL[p.museum_id] || "MuseoDavao"}</span>
+          <h4>${p.name}</h4>
+          <p class="product-desc">${p.description || ""}</p>
+          <div class="product-foot"><span class="price">₱${Number(p.price).toFixed(2)}</span></div>
+          <button class="btn-sm" style="width:100%;margin-top:6px;" onclick='md_addToCart(${JSON.stringify(p)})'>Add to basket</button>
+        </div>
+      </div>`).join("");
+  });
+</script>
+</body>
+</html>
