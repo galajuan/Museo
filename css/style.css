@@ -110,7 +110,7 @@ button{font-family:var(--body);cursor:pointer;}
   content:'';position:absolute;inset:0;
   background-image:
     linear-gradient(180deg, rgba(27,27,31,.15), rgba(27,27,31,.85)),
-    var(--hero-image, none);
+    url('../images/Hero2.jpg');
   background-size:cover;background-position:center;
   opacity:.55;
 }
