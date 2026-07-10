@@ -55,9 +55,19 @@
             </div>
             <div class="field"><label>Price (₱)</label><input type="number" step="0.01" id="pPrice" required></div>
             <div class="field"><label>Stock</label><input type="number" id="pStock" required></div>
-            <div class="field"><label>Image URL</label><input type="text" id="pImage" placeholder="https://..."></div>
+            <div class="field">
+              <label>Product image</label>
+              <input type="file" id="pImageFile" accept="image/*">
+              <input type="hidden" id="pImage" value="">
+              <div id="pImagePreviewWrap" style="margin-top:10px;">
+                <img id="pImagePreview" style="display:none;max-width:140px;max-height:140px;object-fit:cover;border:1px solid var(--line);">
+              </div>
+              <p style="font-size:.78rem;opacity:.65;margin-top:6px;">JPG or PNG, up to a few MB. Leave blank to keep the current image when editing.</p>
+            </div>
             <div class="field"><label>Description</label><textarea id="pDesc" rows="3"></textarea></div>
+
             <div class="check-row"><input type="checkbox" id="pActive" checked><label style="margin:0;">Visible in shop</label></div>
+            <div class="check-row"><input type="checkbox" id="pForSale" checked><label style="margin:0;">For sale (uncheck for display-only collection items)</label></div>
             <div style="display:flex;gap:10px;">
               <button type="submit" class="btn btn-brass" style="flex:1;justify-content:center;">Save product</button>
               <button type="button" class="btn-sm-outline" id="resetProductFormBtn">Clear</button>
