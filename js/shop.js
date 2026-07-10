@@ -60,11 +60,15 @@ function md_renderProducts() {
         <p class="product-desc">${p.description || ""}</p>
         <div class="product-foot">
           <span class="price">₱${Number(p.price).toFixed(2)}</span>
-          <span class="stock-note">${p.stock > 0 ? p.stock + " in stock" : "Out of stock"}</span>
+          <span class="stock-note">${p.for_sale === false ? "Collection item" : p.stock > 0 ? p.stock + " in stock" : "Out of stock"}</span>
         </div>
-        <button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCart(${JSON.stringify(p)})'>
+        ${
+          p.for_sale === false
+            ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
+            : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCart(${JSON.stringify(p)})'>
           ${p.stock <= 0 ? "Out of stock" : "Add to basket"}
-        </button>
+        </button>`
+        }
       </div>
     </div>`
     )
