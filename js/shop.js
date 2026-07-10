@@ -5,9 +5,9 @@ let MD_PRODUCTS_CACHE = [];
 let MD_ACTIVE_FILTER = "all";
 
 const MD_PAYMENT_INFO = {
-  gcash: { label: "GCash", detail: "Send to 0917-123-4567 (MuseoDavao Shop). Enter your reference number below." },
-  bdo: { label: "BDO", detail: "Bank transfer to BDO Savings 0012-3456-7890 (MuseoDavao Shop Inc.). Enter your reference number below." },
-  bpi: { label: "BPI", detail: "Bank transfer to BPI Savings 9988-7766-5544 (MuseoDavao Shop Inc.). Enter your reference number below." },
+  gcash: { label: "GCash", detail: "Send to 09128461404 (MuseoDavao Shop). Enter your reference number below." },
+  bdo: { label: "BDO", detail: "Bank transfer to BDO Savings 0032-6027-0048 (MuseoDavao Shop Inc.). Enter your reference number below." },
+  bpi: { label: "BPI", detail: "Bank transfer to BPI Savings  (MuseoDavao Shop Inc.). Enter your reference number below." },
   cash: { label: "Cash", detail: "Pay in cash upon pickup (walk-in) or upon delivery (online order)." },
 };
 
