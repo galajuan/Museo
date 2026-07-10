@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — MuseoDavao</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="page-hero">
+  <div class="container">
+    <div class="breadcrumb"><a href="index.html">Home</a> / Account</div>
+    <h1 id="pageTitle">Welcome back</h1>
+  </div>
+</div>
+
+<section>
+  <div class="container">
+    <form class="form-card" id="loginForm">
+      <div class="field"><label>Email</label><input type="email" id="loginEmail" required></div>
+      <div class="field"><label>Password</label><input type="password" id="loginPassword" required></div>
+      <p class="form-error" id="loginError"></p>
+      <button type="submit" class="btn btn-brass" style="width:100%;justify-content:center;">Log in</button>
+      <p class="form-note">New here? <a href="#" id="showSignup" style="color:var(--brass);">Create an account</a></p>
+    </form>
+
+    <form class="form-card" id="signupForm" style="display:none;margin-top:20px;">
+      <div class="field"><label>Full name</label><input type="text" id="suName" required></div>
+      <div class="field"><label>Email</label><input type="email" id="suEmail" required></div>
+      <div class="field"><label>Phone</label><input type="tel" id="suPhone"></div>
+      <div class="field"><label>Password</label><input type="password" id="suPassword" required minlength="6"></div>
+      <p class="form-error" id="signupError"></p>
+      <button type="submit" class="btn btn-brass" style="width:100%;justify-content:center;">Create account</button>
+      <p class="form-note">Already have an account? <a href="#" id="showLogin" style="color:var(--brass);">Log in</a></p>
+    </form>
+  </div>
+</section>
+
+<script>window.MD_PAGE = "login";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/chatbot.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  document.getElementById("showSignup").addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("signupForm").style.display = "block";
+  });
+  document.getElementById("showLogin").addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("signupForm").style.display = "none";
+    document.getElementById("loginForm").style.display = "block";
+  });
+
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById("loginError");
+    errEl.style.display = "none";
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const { error } = await md_signIn({ email, password });
+    if (error) {
+      errEl.textContent = error.message;
+      errEl.style.display = "block";
+      return;
+    }
+    const profile = await md_getProfile();
+    window.location.href = profile && profile.role === "admin" ? "admin.html" : "account.html";
+  });
+
+  document.getElementById("signupForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById("signupError");
+    errEl.style.display = "none";
+    const fullName = document.getElementById("suName").value.trim();
+    const email = document.getElementById("suEmail").value.trim();
+    const phone = document.getElementById("suPhone").value.trim();
+    const password = document.getElementById("suPassword").value;
+    const { error } = await md_signUp({ fullName, email, phone, password });
+    if (error) {
+      errEl.textContent = error.message;
+      errEl.style.display = "block";
+      return;
+    }
+    md_toast("Account created! You can log in now.");
+    document.getElementById("signupForm").style.display = "none";
+    document.getElementById("loginForm").style.display = "block";
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Receipt — MuseoDavao</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .receipt-card{max-width:560px;margin:0 auto;background:var(--paper);border:1px solid var(--line);padding:40px;}
+  .receipt-top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--ink);padding-bottom:20px;margin-bottom:20px;}
+  .mono-lg{font-family:var(--mono);font-size:1.1rem;font-weight:600;}
+  .receipt-meta{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .receipt-line{margin-bottom:16px;}
+  .receipt-table{margin:20px 0;}
+  .receipt-total-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:1.2rem;font-weight:600;border-top:2px solid var(--ink);padding-top:14px;margin-top:6px;}
+  .receipt-status{margin:18px 0;}
+  .receipt-footnote{font-size:.82rem;opacity:.7;margin-top:20px;}
+  .receipt-actions{display:flex;gap:14px;justify-content:center;margin-top:28px;flex-wrap:wrap;}
+  @media print{
+    .site-header,.site-footer,#docent-launcher,#docent-panel,#cart-launcher,#cart-drawer,#overlay,.receipt-actions,.page-hero{display:none !important;}
+    body{background:#fff;}
+    .receipt-card{border:none;box-shadow:none;margin:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="page-hero">
+  <div class="container">
+    <div class="breadcrumb"><a href="index.html">Home</a> / Receipt</div>
+    <h1>Order confirmed</h1>
+    <p class="lede" style="margin-top:10px;">Thank you — here's your receipt. Download it as a PDF or print it for pickup.</p>
+  </div>
+</div>
+
+<section>
+  <div class="container">
+    <div id="receiptRoot"></div>
+    <div class="receipt-actions">
+      <button class="btn btn-dark" id="downloadBtn">Download PDF</button>
+      <button class="btn btn-outline" id="printBtn" style="border-color:var(--ink);color:var(--ink);">Print receipt</button>
+      <a href="shop.html" class="btn btn-brass">Continue shopping</a>
+    </div>
+  </div>
+</section>
+
+<script>window.MD_PAGE = "shop";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/chatbot.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/receipt.js"></script>
+</body>
+</html>
