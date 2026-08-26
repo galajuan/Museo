@@ -220,12 +220,12 @@ section{padding:76px 0;}
 /* ---------- Docent Chatbot ---------- */
 #docent-launcher{
   position:fixed;bottom:24px;right:24px;z-index:80;
-  width:60px;height:60px;border-radius:50%;background:var(--brass);
-  color:var(--ink);border:none;box-shadow:var(--shadow);
-  font-family:var(--display);font-weight:700;font-size:1.3rem;
+  width:60px;height:60px;border-radius:50%;background:#25D366;
+  color:#fff;border:none;box-shadow:var(--shadow);
+  font-family:var(--display);font-weight:700;font-size:1.6rem;
   display:flex;align-items:center;justify-content:center;
 }
-#docent-launcher:hover{background:var(--brass-light);}
+#docent-launcher:hover{background:#22c15e;}
 #docent-panel{
   position:fixed;bottom:96px;right:24px;z-index:81;width:360px;max-width:calc(100vw - 32px);
   height:480px;max-height:70vh;background:var(--paper);border:1px solid var(--line);
