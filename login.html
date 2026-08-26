@@ -29,7 +29,11 @@
       <div class="field"><label>Full name</label><input type="text" id="suName" required></div>
       <div class="field"><label>Email</label><input type="email" id="suEmail" required></div>
       <div class="field"><label>Phone</label><input type="tel" id="suPhone"></div>
-      <div class="field"><label>Password</label><input type="password" id="suPassword" required minlength="6"></div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="suPassword" required minlength="8" placeholder="At least 8 characters">
+        <p style="font-size:.75rem;opacity:.7;margin-top:4px;">Must include an uppercase letter, a lowercase letter, a number, and a special character (e.g. ! @ # $ %).</p>
+      </div>
       <p class="form-error" id="signupError"></p>
       <button type="submit" class="btn btn-brass" style="width:100%;justify-content:center;">Create account</button>
       <p class="form-note">Already have an account? <a href="#" id="showLogin" style="color:var(--brass);">Log in</a></p>
@@ -80,13 +84,20 @@
     const email = document.getElementById("suEmail").value.trim();
     const phone = document.getElementById("suPhone").value.trim();
     const password = document.getElementById("suPassword").value;
+
+    if (!md_validatePassword(password)) {
+      errEl.textContent = MD_PASSWORD_HINT;
+      errEl.style.display = "block";
+      return;
+    }
+
     const { error } = await md_signUp({ fullName, email, phone, password });
     if (error) {
       errEl.textContent = error.message;
       errEl.style.display = "block";
       return;
     }
-    md_toast("Account created! You can log in now.");
+    md_toast("Account created! Check your email to confirm your account.");
     document.getElementById("signupForm").style.display = "none";
     document.getElementById("loginForm").style.display = "block";
   });
