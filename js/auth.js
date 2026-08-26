@@ -22,11 +22,31 @@ async function md_getProfile() {
   return data;
 }
 
+/** At least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special character */
+const MD_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+const MD_PASSWORD_HINT =
+  "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character (e.g. ! @ # $ %).";
+
+function md_validatePassword(password) {
+  return MD_PASSWORD_PATTERN.test(password || "");
+}
+
+/** Builds an absolute URL to confirmed.html next to whatever page this script is loaded from */
+function md_getEmailRedirectUrl() {
+  return new URL("confirmed.html", window.location.href).toString();
+}
+
 async function md_signUp({ fullName, email, phone, password }) {
+  if (!md_validatePassword(password)) {
+    return { error: { message: MD_PASSWORD_HINT } };
+  }
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName } },
+    options: {
+      data: { full_name: fullName },
+      emailRedirectTo: md_getEmailRedirectUrl(),
+    },
   });
   if (error) return { error };
   // phone stored separately since auth.users doesn't have it by default
