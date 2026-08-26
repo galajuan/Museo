@@ -111,7 +111,7 @@ function md_renderCartShell() {
 function md_renderDocentShell() {
   const launcher = document.createElement("button");
   launcher.id = "docent-launcher";
-  launcher.innerHTML = "🏺";
+  launcher.innerHTML = "💬";
   launcher.setAttribute("aria-label", "Chat with the Docent");
   document.body.appendChild(launcher);
   launcher.addEventListener("click", md_toggleDocent);
