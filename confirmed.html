@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Confirmed — Museo Davao</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="page-hero">
+  <div class="container">
+    <div class="breadcrumb"><a href="index.html">Home</a> / Account</div>
+    <h1 id="pageTitle">Museo Davao</h1>
+  </div>
+</div>
+
+<section>
+  <div class="container" style="text-align:center;padding:60px 0;">
+    <div id="confirmStatus" class="form-card" style="max-width:480px;margin:0 auto;">
+      <p style="font-family:var(--mono);font-size:.9rem;" id="confirmMessage">Confirming your email…</p>
+    </div>
+  </div>
+</section>
+
+<script>window.MD_PAGE = "confirm";</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/chatbot.js"></script>
+<script src="js/layout.js"></script>
+<script>
+  (async () => {
+    const msgEl = document.getElementById("confirmMessage");
+
+    // supabase-js v2 auto-detects the confirmation token in the URL and
+    // exchanges it for a session. Give it a brief moment to finish.
+    let session = await md_getSession();
+    if (!session) {
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      session = await md_getSession();
+    }
+
+    if (session) {
+      msgEl.textContent = "Your email is confirmed. Taking you to your Museo Davao account…";
+      setTimeout(() => {
+        window.location.href = "account.html";
+      }, 1400);
+    } else {
+      msgEl.innerHTML =
+        'Your email is confirmed. <a href="login.html" style="color:var(--brass);">Log in</a> to continue to Museo Davao.';
+    }
+  })();
+</script>
+</body>
+</html>
