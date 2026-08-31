@@ -3,6 +3,7 @@
    ========================================================= */
 let MD_PRODUCTS_CACHE = [];
 let MD_ACTIVE_FILTER = "all";
+let MD_SEARCH_QUERY = "";
 
 const MD_PAYMENT_INFO = {
   gcash: { label: "GCash", detail: "Send to 09128461404 (MuseoDavao Shop). Enter your reference number below." },
@@ -39,13 +40,25 @@ async function md_loadProducts() {
 function md_renderProducts() {
   const grid = document.getElementById("productGrid");
   if (!grid) return;
-  const items =
+  let items =
     MD_ACTIVE_FILTER === "all"
       ? MD_PRODUCTS_CACHE
       : MD_PRODUCTS_CACHE.filter((p) => p.museum_id === MD_ACTIVE_FILTER);
 
+  const q = MD_SEARCH_QUERY.trim().toLowerCase();
+  if (q) {
+    items = items.filter(
+      (p) =>
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.description || "").toLowerCase().includes(q) ||
+        (MD_MUSEUM_LABEL[p.museum_id] || "").toLowerCase().includes(q)
+    );
+  }
+
   if (items.length === 0) {
-    grid.innerHTML = `<p class="empty-note">No items in this collection yet.</p>`;
+    grid.innerHTML = q
+      ? `<p class="empty-note">No items match "${MD_SEARCH_QUERY}". Try a different search.</p>`
+      : `<p class="empty-note">No items in this collection yet.</p>`;
     return;
   }
 
@@ -73,6 +86,15 @@ function md_renderProducts() {
     </div>`
     )
     .join("");
+}
+
+function md_initShopSearch() {
+  const input = document.getElementById("shopSearchInput");
+  if (!input) return;
+  input.addEventListener("input", () => {
+    MD_SEARCH_QUERY = input.value;
+    md_renderProducts();
+  });
 }
 
 function md_initShopFilters() {
@@ -216,6 +238,7 @@ async function md_placeOrder(e) {
 
 document.addEventListener("DOMContentLoaded", () => {
   md_loadProducts();
+  md_initShopSearch();
   md_initShopFilters();
   const form = document.getElementById("checkoutForm");
   if (form) {
