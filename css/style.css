@@ -292,6 +292,14 @@ section{padding:76px 0;}
 /* ---------- Utility ---------- */
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:40px;}
 @media (max-width:860px){.grid-2{grid-template-columns:1fr;}}
+.shop-search{position:relative;max-width:420px;margin-bottom:20px;}
+.shop-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:.85rem;opacity:.5;pointer-events:none;}
+.shop-search input{
+  width:100%;padding:12px 14px 12px 38px;border:1px solid var(--line);background:var(--paper);
+  font-family:var(--body);font-size:.92rem;color:var(--ink);border-radius:var(--radius);
+}
+.shop-search input:focus{outline:none;border-color:var(--brass);}
+.shop-search input::-webkit-search-cancel-button{cursor:pointer;}
 .tag-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
 .tag-btn{font-family:var(--mono);font-size:.75rem;padding:7px 14px;border:1px solid var(--line);background:transparent;}
 .tag-btn.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
