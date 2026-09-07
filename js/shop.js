@@ -63,14 +63,28 @@ function md_renderProducts() {
   }
 
   grid.innerHTML = items
-    .map(
-      (p) => `
+    .map((p) => {
+      const sizeId = `size-${p.id}`;
+      const showSize = typeof md_needsSize === "function" && md_needsSize(p) && p.for_sale !== false;
+      return `
     <div class="product-card">
       <div class="product-media">${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `<span class="ph">No image yet</span>`}</div>
       <div class="product-body">
         <span class="product-museum">${MD_MUSEUM_LABEL[p.museum_id] || "MuseoDavao"}</span>
         <h4>${p.name}</h4>
         <p class="product-desc">${p.description || ""}</p>
+        ${
+          showSize
+            ? `<div class="size-field"><label for="${sizeId}">Size</label>
+                <select id="${sizeId}" class="size-select">
+                  <option value="S">S</option>
+                  <option value="M" selected>M</option>
+                  <option value="L">L</option>
+                  <option value="XL">XL</option>
+                </select>
+              </div>`
+            : ""
+        }
         <div class="product-foot">
           <span class="price">₱${Number(p.price).toFixed(2)}</span>
           <span class="stock-note">${p.for_sale === false ? "Collection item" : p.stock > 0 ? p.stock + " in stock" : "Out of stock"}</span>
@@ -78,13 +92,13 @@ function md_renderProducts() {
         ${
           p.for_sale === false
             ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
-            : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCart(${JSON.stringify(p)})'>
+            : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"})'>
           ${p.stock <= 0 ? "Out of stock" : "Add to basket"}
         </button>`
         }
       </div>
-    </div>`
-    )
+    </div>`;
+    })
     .join("");
 }
 
@@ -218,7 +232,7 @@ async function md_placeOrder(e) {
   const items = cart.map((i) => ({
     order_id: order.id,
     product_id: i.id,
-    product_name: i.name,
+    product_name: i.size ? `${i.name} (Size ${i.size})` : i.name,
     unit_price: i.price,
     quantity: i.qty,
     line_total: i.price * i.qty,
