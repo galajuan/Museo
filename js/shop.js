@@ -3,6 +3,7 @@
    ========================================================= */
 let MD_PRODUCTS_CACHE = [];
 let MD_ACTIVE_FILTER = "all";
+let MD_ACTIVE_CATEGORY = "all";
 let MD_SEARCH_QUERY = "";
 
 const MD_PAYMENT_INFO = {
@@ -45,6 +46,12 @@ function md_renderProducts() {
       ? MD_PRODUCTS_CACHE
       : MD_PRODUCTS_CACHE.filter((p) => p.museum_id === MD_ACTIVE_FILTER);
 
+  if (MD_ACTIVE_CATEGORY === "merchandise") {
+    items = items.filter((p) => p.for_sale !== false);
+  } else if (MD_ACTIVE_CATEGORY === "collection") {
+    items = items.filter((p) => p.for_sale === false);
+  }
+
   const q = MD_SEARCH_QUERY.trim().toLowerCase();
   if (q) {
     items = items.filter(
@@ -65,12 +72,19 @@ function md_renderProducts() {
   grid.innerHTML = items
     .map((p) => {
       const sizeId = `size-${p.id}`;
+      const qtyId = `qty-${p.id}`;
       const showSize = typeof md_needsSize === "function" && md_needsSize(p) && p.for_sale !== false;
+      const isCollection = p.for_sale === false;
       return `
     <div class="product-card">
-      <div class="product-media">${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `<span class="ph">No image yet</span>`}</div>
+      <div class="product-media">${
+        p.image_url
+          ? `${md_zoomableImg(p.image_url, p.name)}<span class="zoom-hint">🔍</span>`
+          : `<span class="ph">No image yet</span>`
+      }</div>
       <div class="product-body">
         <span class="product-museum">${MD_MUSEUM_LABEL[p.museum_id] || "MuseoDavao"}</span>
+        <span class="product-category ${isCollection ? "collection" : "merch"}">${isCollection ? "Collection" : "Merchandise"}</span>
         <h4>${p.name}</h4>
         <p class="product-desc">${p.description || ""}</p>
         ${
@@ -85,6 +99,7 @@ function md_renderProducts() {
               </div>`
             : ""
         }
+        ${!isCollection && p.stock > 0 ? md_qtyFieldHtml(qtyId, p.stock, p.price) : ""}
         <div class="product-foot">
           <span class="price">₱${Number(p.price).toFixed(2)}</span>
           <span class="stock-note">${p.for_sale === false ? "Collection item" : p.stock > 0 ? p.stock + " in stock" : "Out of stock"}</span>
@@ -92,7 +107,7 @@ function md_renderProducts() {
         ${
           p.for_sale === false
             ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
-            : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"})'>
+            : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${p.stock > 0 ? `"${qtyId}"` : "null"})'>
           ${p.stock <= 0 ? "Out of stock" : "Add to basket"}
         </button>`
         }
@@ -124,6 +139,19 @@ function md_initShopFilters() {
   });
 }
 
+function md_initShopCategoryFilters() {
+  const row = document.getElementById("shopCategoryFilters");
+  if (!row) return;
+  row.querySelectorAll(".tag-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      row.querySelectorAll(".tag-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      MD_ACTIVE_CATEGORY = btn.dataset.category;
+      md_renderProducts();
+    });
+  });
+}
+
 /* ---------------- Checkout ---------------- */
 
 function md_renderCheckoutSummary() {
@@ -137,7 +165,7 @@ function md_renderCheckoutSummary() {
   }
   document.getElementById("placeOrderBtn")?.removeAttribute("disabled");
   wrap.innerHTML =
-    cart.map((i) => `<div class="cart-total-row"><span>${i.name} × ${i.qty}</span><span>₱${(i.price * i.qty).toFixed(2)}</span></div>`).join("") +
+    cart.map((i) => `<div class="cart-total-row"><span>${i.name}${i.size ? ` (Size ${i.size})` : ""} × ${i.qty}</span><span>₱${(i.price * i.qty).toFixed(2)}</span></div>`).join("") +
     `<div class="cart-total-row" style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px;font-weight:600;"><span>Total</span><span>₱${md_cartSubtotal().toFixed(2)}</span></div>`;
 }
 
@@ -254,6 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
   md_loadProducts();
   md_initShopSearch();
   md_initShopFilters();
+  md_initShopCategoryFilters();
   const form = document.getElementById("checkoutForm");
   if (form) {
     form.addEventListener("submit", md_placeOrder);
