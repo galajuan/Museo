@@ -43,7 +43,7 @@ async function md_loadEvents() {
     .map(
       (ev) => `
     <div class="event-card">
-      <div class="event-media">${ev.image_url ? `<img src="${ev.image_url}" alt="${ev.title}">` : `<span>${MD_MUSEUM_LABEL[ev.museum_id] || "MuseoDavao"}</span>`}</div>
+      <div class="event-media">${ev.image_url ? md_zoomableImg(ev.image_url, ev.title) : `<span>${MD_MUSEUM_LABEL[ev.museum_id] || "MuseoDavao"}</span>`}</div>
       <div class="event-body">
         <div class="event-date">${md_formatDate(ev.event_date)}${ev.event_time ? " · " + ev.event_time : ""}</div>
         <h4>${ev.title}</h4>
