@@ -40,13 +40,14 @@ function md_addToCart(product, qty = 1, size = null) {
     });
   }
   md_saveCart(cart);
-  md_toast(size ? `Added "${product.name}" (Size ${size}) to your basket` : `Added "${product.name}" to your basket`);
+  const qtyLabel = qty > 1 ? ` (×${qty})` : "";
+  md_toast(size ? `Added "${product.name}" (Size ${size})${qtyLabel} to your basket` : `Added "${product.name}"${qtyLabel} to your basket`);
   md_openCart();
 }
 
-/* Used by product cards that render a size <select> — reads the chosen
-   size (if the product needs one) before adding to the basket. */
-function md_addToCartFromCard(product, sizeSelectId) {
+/* Used by product cards that render a size <select> and/or a quantity
+   stepper — reads the chosen size/qty (if present) before adding to the basket. */
+function md_addToCartFromCard(product, sizeSelectId, qtyInputId) {
   let size = null;
   if (sizeSelectId) {
     const sel = document.getElementById(sizeSelectId);
@@ -56,7 +57,14 @@ function md_addToCartFromCard(product, sizeSelectId) {
     md_toast("Please choose a size first");
     return;
   }
-  md_addToCart(product, 1, size);
+  let qty = 1;
+  if (qtyInputId) {
+    const input = document.getElementById(qtyInputId);
+    if (input) qty = parseInt(input.value, 10) || 1;
+  }
+  const maxStock = Number(product.stock) || 1;
+  qty = Math.min(Math.max(1, qty), maxStock);
+  md_addToCart(product, qty, size);
 }
 
 function md_updateQty(id, delta, size = null) {
@@ -94,7 +102,7 @@ function md_renderCart() {
             (i) => `
         <div class="cart-item">
           <div class="cimg">${
-            i.image_url ? `<img src="${i.image_url}" alt="${i.name}">` : ""
+            i.image_url ? md_zoomableImg(i.image_url, i.name) : ""
           }</div>
           <div class="cinfo">
             <h6>${i.name}${i.size ? ` <span style="opacity:.6;font-weight:400;">— Size ${i.size}</span>` : ""}</h6>
