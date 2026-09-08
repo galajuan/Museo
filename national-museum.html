@@ -53,6 +53,11 @@
       <div><span class="eyebrow">From this wing's shop</span><h2>National Museum</h2></div>
       <a href="shop.html" class="btn btn-dark">Show all collections</a>
     </div>
+    <div class="tag-row" id="wingCategoryFilters">
+      <button class="tag-btn active" data-category="all">All items</button>
+      <button class="tag-btn" data-category="merchandise">Merchandise</button>
+      <button class="tag-btn" data-category="collection">Collection</button>
+    </div>
     <div class="product-grid" id="wingProductGrid"><p class="empty-note">Loading…</p></div>
   </div>
 </section>
@@ -66,19 +71,31 @@
 <script src="js/layout.js"></script>
 <script src="js/events.js"></script>
 <script>
-  document.addEventListener("DOMContentLoaded", async () => {
+  let MD_WING_PRODUCTS = [];
+  let MD_WING_CATEGORY = "all";
+
+  function md_renderWingGrid() {
     const grid = document.getElementById("wingProductGrid");
-    if (typeof CONFIG_OK !== "undefined" && !CONFIG_OK) { grid.innerHTML = `<p class="empty-note">Connect Supabase to load this wing's shop items.</p>`; return; }
-    const { data, error } = await supabase.from("products").select("*").eq("museum_id","national").eq("is_active", true);
-    if (error || !data || data.length === 0) { grid.innerHTML = `<p class="empty-note">No items tagged to this wing yet.</p>`; return; }
-    grid.innerHTML = data.map(p => {
+    let items = MD_WING_PRODUCTS;
+    if (MD_WING_CATEGORY === "merchandise") items = items.filter((p) => p.for_sale !== false);
+    else if (MD_WING_CATEGORY === "collection") items = items.filter((p) => p.for_sale === false);
+
+    if (items.length === 0) {
+      grid.innerHTML = `<p class="empty-note">No items in this category yet.</p>`;
+      return;
+    }
+
+    grid.innerHTML = items.map(p => {
       const sizeId = `size-${p.id}`;
+      const qtyId = `qty-${p.id}`;
       const showSize = typeof md_needsSize === "function" && md_needsSize(p) && p.for_sale !== false;
+      const isCollection = p.for_sale === false;
       return `
       <div class="product-card">
-        <div class="product-media">${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `<span class="ph">No image yet</span>`}</div>
+        <div class="product-media">${p.image_url ? `${md_zoomableImg(p.image_url, p.name)}<span class="zoom-hint">🔍</span>` : `<span class="ph">No image yet</span>`}</div>
         <div class="product-body">
           <span class="product-museum">National Museum</span>
+          <span class="product-category ${isCollection ? "collection" : "merch"}">${isCollection ? "Collection" : "Merchandise"}</span>
           <h4>${p.name}</h4>
           <p class="product-desc">${p.description || ""}</p>
           ${
@@ -93,20 +110,39 @@
                 </div>`
               : ""
           }
+          ${!isCollection && p.stock > 0 ? md_qtyFieldHtml(qtyId, p.stock, p.price) : ""}
           <div class="product-foot">
             <span class="price">₱${Number(p.price).toFixed(2)}</span>
-            <span class="stock-note">${p.for_sale === false ? "Collection item" : p.stock > 0 ? p.stock + " in stock" : "Out of stock"}</span>
+            <span class="stock-note">${isCollection ? "Collection item" : p.stock > 0 ? p.stock + " in stock" : "Out of stock"}</span>
           </div>
           ${
             p.for_sale === false
               ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
-              : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"})'>
+              : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${p.stock > 0 ? `"${qtyId}"` : "null"})'>
             ${p.stock <= 0 ? "Out of stock" : "Add to basket"}
           </button>`
           }
         </div>
       </div>`;
     }).join("");
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const grid = document.getElementById("wingProductGrid");
+    if (typeof CONFIG_OK !== "undefined" && !CONFIG_OK) { grid.innerHTML = `<p class="empty-note">Connect Supabase to load this wing's shop items.</p>`; return; }
+    const { data, error } = await supabase.from("products").select("*").eq("museum_id","national").eq("is_active", true);
+    if (error || !data || data.length === 0) { grid.innerHTML = `<p class="empty-note">No items tagged to this wing yet.</p>`; return; }
+    MD_WING_PRODUCTS = data;
+    md_renderWingGrid();
+
+    document.getElementById("wingCategoryFilters").querySelectorAll(".tag-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#wingCategoryFilters .tag-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        MD_WING_CATEGORY = btn.dataset.category;
+        md_renderWingGrid();
+      });
+    });
   });
 </script>
 </body>
