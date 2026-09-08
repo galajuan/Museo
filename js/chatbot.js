@@ -1,5 +1,5 @@
 /* =========================================================
-   "The Docent" — MuseoDavao's chat guide.
+   "Museo" — MuseoDavao's chat guide.
    A lightweight, rule-based assistant, scoped to answer ONLY
    questions about MuseoDavao and this website. No external AI
    API, no server — runs entirely client-side, same as before.
@@ -374,20 +374,20 @@ const MD_INTENTS = [
   {
     topic: "contact",
     test: (q) => md_fuzzyAny(q, ["contact", "email you", "reach you", "phone number", "get in touch"]),
-    handle: () => "You can reach the MuseoDavao desk at hello@museodavao.ph, or use \"Ask the Docent\" (that's me!) in the site footer any time.",
+    handle: () => "You can reach the MuseoDavao desk at hello@museodavao.ph, or use \"Ask Museo\" (that's me!) in the site footer any time.",
   },
 ];
 
 /* ---------------- Greeting / small talk (handled outside clause-splitting) ---------------- */
 function md_greetingReply(q) {
   if (/^(hi|hello|hey|good\s?(morning|afternoon|evening)|kumusta|kamusta)\b/.test(q)) {
-    return "Hello there! I'm the Docent — happy to help you plan your visit, check exhibits, or find something nice in the shop. What are you curious about?";
+    return "Hello there! I'm Museo — happy to help you plan your visit, check exhibits, or find something nice in the shop. What are you curious about?";
   }
   if (md_fuzzyAny(q, ["thank"]) || /\bsalamat\b/.test(q)) {
     return "You're very welcome — enjoy the visit, and don't be shy about coming back with more questions!";
   }
   if (md_fuzzyAny(q, ["who are you", "what are you"])) {
-    return "I'm the Docent, MuseoDavao's resident chat guide — think of me as the front desk, minus the queue. Ask me about hours, tickets, exhibits, the shop, or your account.";
+    return "I'm Museo, MuseoDavao's resident chat guide — think of me as the front desk, minus the queue. Ask me about hours, tickets, exhibits, the shop, or your account.";
   }
   return null;
 }
@@ -511,7 +511,7 @@ function md_initDocent() {
   });
 
   md_pushMessage(
-    "Hi, I'm the Docent 🏺 — ask me about hours, tickets, exhibits, or how ordering from the shop works.",
+    "Hi, I'm Museo 🏺 — ask me about hours, tickets, exhibits, or how ordering from the shop works.",
     "bot"
   );
 
