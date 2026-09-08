@@ -139,6 +139,103 @@ function md_renderDocentShell() {
   document.getElementById("closeDocentBtn").addEventListener("click", md_closeDocent);
 }
 
+/* ---------- Product image zoom (lightbox) ---------- */
+function md_escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function md_zoomableImg(url, caption, extraAttrs) {
+  if (!url) return "";
+  return `<img src="${md_escapeHtml(url)}" alt="${md_escapeHtml(caption)}" class="zoomable" data-zoom-url="${md_escapeHtml(url)}" data-zoom-caption="${md_escapeHtml(caption)}" ${extraAttrs || ""}>`;
+}
+
+function md_renderZoomShell() {
+  const overlay = document.createElement("div");
+  overlay.id = "md-zoom-overlay";
+  overlay.className = "md-zoom-overlay";
+  overlay.innerHTML = `
+    <button class="md-zoom-close" id="mdZoomClose" aria-label="Close zoomed image">×</button>
+    <div class="md-zoom-inner">
+      <img id="mdZoomImg" src="" alt="">
+      <div class="md-zoom-caption" id="mdZoomCaption"></div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) md_closeZoom();
+  });
+  document.getElementById("mdZoomClose").addEventListener("click", md_closeZoom);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") md_closeZoom();
+  });
+  // Delegated click handler: works for any .zoomable image rendered anywhere,
+  // now or in the future, regardless of special characters in names/URLs.
+  document.addEventListener("click", (e) => {
+    const img = e.target.closest("img.zoomable");
+    if (img) md_openZoom(img.dataset.zoomUrl, img.dataset.zoomCaption);
+  });
+}
+
+/** Open a full-size zoomed view of a product/collection image. Call from any page. */
+function md_openZoom(url, caption) {
+  if (!url) return;
+  const overlay = document.getElementById("md-zoom-overlay");
+  if (!overlay) return;
+  document.getElementById("mdZoomImg").src = url;
+  document.getElementById("mdZoomImg").alt = caption || "";
+  document.getElementById("mdZoomCaption").textContent = caption || "";
+  overlay.classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function md_closeZoom() {
+  const overlay = document.getElementById("md-zoom-overlay");
+  if (!overlay) return;
+  overlay.classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+/* ---------- Quantity stepper (product cards) ---------- */
+function md_qtyFieldHtml(qtyId, maxStock, unitPrice) {
+  const max = Math.max(1, Number(maxStock) || 1);
+  const price = Number(unitPrice) || 0;
+  return `<div class="qty-field">
+    <label for="${qtyId}">Quantity</label>
+    <div class="qty-ctl">
+      <button type="button" onclick="md_stepQty('${qtyId}',-1)">−</button>
+      <input type="number" id="${qtyId}" value="1" min="1" max="${max}" data-unit-price="${price}" inputmode="numeric" oninput="md_updateQtySubtotal('${qtyId}')">
+      <button type="button" onclick="md_stepQty('${qtyId}',1)">+</button>
+    </div>
+    <div class="qty-subtotal" id="subtotal-${qtyId}">Subtotal: ₱${price.toFixed(2)}</div>
+  </div>`;
+}
+
+function md_updateQtySubtotal(qtyId) {
+  const input = document.getElementById(qtyId);
+  const sub = document.getElementById(`subtotal-${qtyId}`);
+  if (!input || !sub) return;
+  const max = parseInt(input.max, 10) || 1;
+  let val = parseInt(input.value, 10) || 1;
+  val = Math.min(max, Math.max(1, val));
+  input.value = val;
+  const unit = parseFloat(input.dataset.unitPrice) || 0;
+  sub.textContent = `Subtotal: ₱${(unit * val).toFixed(2)}`;
+}
+
+function md_stepQty(qtyId, delta) {
+  const input = document.getElementById(qtyId);
+  if (!input) return;
+  const max = parseInt(input.max, 10) || 1;
+  let val = parseInt(input.value, 10) || 1;
+  val = Math.min(max, Math.max(1, val + delta));
+  input.value = val;
+  md_updateQtySubtotal(qtyId);
+}
+
 async function md_updateAccountLink() {
   const link = document.getElementById("navAccountLink");
   if (!link || typeof md_getSession !== "function") return;
@@ -162,6 +259,7 @@ function md_initLayout() {
   md_renderHeader();
   md_renderCartShell();
   md_renderDocentShell();
+  md_renderZoomShell();
   md_renderFooter();
   md_updateAccountLink();
   if (typeof md_renderCart === "function") md_renderCart();
