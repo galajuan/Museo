@@ -68,7 +68,7 @@ function md_renderFooter() {
       </div>
       <div>
         <h5>Museum Desk</h5>
-        <a href="#" id="footerChatLink">Ask the Docent</a>
+        <a href="#" id="footerChatLink">Ask Museo</a>
         <a href="mailto:hello@museodavao.ph">hello@museodavao.ph</a>
       </div>
     </div>
@@ -112,7 +112,7 @@ function md_renderDocentShell() {
   const launcher = document.createElement("button");
   launcher.id = "docent-launcher";
   launcher.innerHTML = "💬";
-  launcher.setAttribute("aria-label", "Chat with the Docent");
+  launcher.setAttribute("aria-label", "Chat with Museo");
   document.body.appendChild(launcher);
   launcher.addEventListener("click", md_toggleDocent);
 
@@ -121,9 +121,9 @@ function md_renderDocentShell() {
   panel.innerHTML = `
     <div class="docent-head">
       <div class="who">
-        <div class="avatar">D</div>
+        <div class="avatar">M</div>
         <div>
-          <h6>The Docent</h6>
+          <h6>Museo</h6>
           <div class="status">Online · MuseoDavao guide</div>
         </div>
       </div>
