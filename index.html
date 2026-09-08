@@ -104,21 +104,44 @@
       grid.innerHTML = `<p class="empty-note">No products yet — add some from the Admin Dashboard.</p>`;
       return;
     }
-    grid.innerHTML = data.map(p => `
+    grid.innerHTML = data.map(p => {
+      const sizeId = `size-${p.id}`;
+      const qtyId = `qty-${p.id}`;
+      const showSize = typeof md_needsSize === "function" && md_needsSize(p) && p.for_sale !== false;
+      const isCollection = p.for_sale === false;
+      return `
       <div class="product-card">
-        <div class="product-media">${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `<span class="ph">No image yet</span>`}</div>
+        <div class="product-media">${p.image_url ? `${md_zoomableImg(p.image_url, p.name)}<span class="zoom-hint">🔍</span>` : `<span class="ph">No image yet</span>`}</div>
         <div class="product-body">
           <span class="product-museum">${MD_MUSEUM_LABEL[p.museum_id] || "MuseoDavao"}</span>
+          <span class="product-category ${isCollection ? "collection" : "merch"}">${isCollection ? "Collection" : "Merchandise"}</span>
           <h4>${p.name}</h4>
           <p class="product-desc">${p.description || ""}</p>
-          <div class="product-foot"><span class="price">₱${Number(p.price).toFixed(2)}</span></div>
+          ${
+            showSize
+              ? `<div class="size-field"><label for="${sizeId}">Size</label>
+                  <select id="${sizeId}" class="size-select">
+                    <option value="S">S</option>
+                    <option value="M" selected>M</option>
+                    <option value="L">L</option>
+                    <option value="XL">XL</option>
+                  </select>
+                </div>`
+              : ""
+          }
+          ${!isCollection && p.stock > 0 ? md_qtyFieldHtml(qtyId, p.stock, p.price) : ""}
+          <div class="product-foot">
+            <span class="price">₱${Number(p.price).toFixed(2)}</span>
+            <span class="stock-note">${isCollection ? "Collection item" : p.stock > 0 ? p.stock + " in stock" : "Out of stock"}</span>
+          </div>
           ${
             p.for_sale === false
               ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
-              : `<button class="btn-sm" style="width:100%;margin-top:6px;" onclick='md_addToCart(${JSON.stringify(p)})'>Add to basket</button>`
+              : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${p.stock > 0 ? `"${qtyId}"` : "null"})'>${p.stock <= 0 ? "Out of stock" : "Add to basket"}</button>`
           }
         </div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
   });
 </script>
 </body>
