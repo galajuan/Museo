@@ -38,24 +38,26 @@ async function md_loadAdminProducts() {
   const tbody = document.getElementById("productsTableBody");
   const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false });
   if (error) {
-    tbody.innerHTML = `<tr><td colspan="6">Error loading products.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7">Error loading products.</td></tr>`;
     return;
   }
   tbody.innerHTML = data
-    .map(
-      (p) => `
+    .map((p) => {
+      const isCollection = p.for_sale === false;
+      return `
     <tr>
       <td>${p.name}</td>
       <td>${MD_MUSEUM_LABEL[p.museum_id] || "—"}</td>
+      <td><span class="product-category ${isCollection ? "collection" : "merch"}" style="font-size:.68rem;">${isCollection ? "Collection" : "Merchandise"}</span></td>
       <td>₱${Number(p.price).toFixed(2)}</td>
       <td>${p.stock}</td>
-      <td>${p.is_active ? "Active" : "Hidden"}${p.for_sale === false ? " · Not for sale" : ""}</td>
+      <td>${p.is_active ? "Active" : "Hidden"}</td>
       <td>
         <button class="btn-sm-outline" onclick='md_editProduct(${JSON.stringify(p)})'>Edit</button>
         <button class="btn-sm-outline" onclick="md_deleteProduct('${p.id}')">Remove</button>
       </td>
-    </tr>`
-    )
+    </tr>`;
+    })
     .join("");
 }
 
@@ -77,7 +79,7 @@ function md_editProduct(p) {
   }
   document.getElementById("pDesc").value = p.description || "";
   document.getElementById("pActive").checked = p.is_active;
-  document.getElementById("pForSale").checked = p.for_sale !== false;
+  document.getElementById("pCategory").value = p.for_sale === false ? "collection" : "merchandise";
   window.scrollTo({ top: document.getElementById("productForm").offsetTop - 100, behavior: "smooth" });
 }
 
@@ -89,6 +91,7 @@ function md_resetProductForm() {
   const preview = document.getElementById("pImagePreview");
   preview.src = "";
   preview.style.display = "none";
+  document.getElementById("pCategory").value = "merchandise";
   document.getElementById("productFormTitle").textContent = "Add a product";
 }
 
@@ -141,7 +144,7 @@ async function md_saveProduct(e) {
     image_url: imageUrl,
     description: document.getElementById("pDesc").value.trim(),
     is_active: document.getElementById("pActive").checked,
-    for_sale: document.getElementById("pForSale").checked,
+    for_sale: document.getElementById("pCategory").value !== "collection",
     updated_at: new Date().toISOString(),
   };
 
