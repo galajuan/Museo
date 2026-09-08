@@ -102,7 +102,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const saved = JSON.parse(localStorage.getItem("museodavao_last_order") || "null");
   if (saved) {
-    md_renderReceipt(saved.order, saved.items);
+    md_renderReceipt(
+      saved.order,
+      (saved.items || []).map((i) => ({
+        name: i.size ? `${i.name} (Size ${i.size})` : i.name,
+        price: i.price,
+        qty: i.qty,
+      }))
+    );
   } else {
     document.getElementById("receiptRoot").innerHTML = `<p class="empty-note">No recent order found. <a href="shop.html" style="color:var(--brass);">Visit the shop</a> to place one.</p>`;
   }
