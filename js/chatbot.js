@@ -352,7 +352,7 @@ const MD_INTENTS = [
     test: (q) => md_fuzzyAny(q, ["password", "forgot password", "reset password"]),
     handle: (q) => {
       if (md_fuzzyAny(q, ["forgot", "reset", "recover", "lost"])) {
-        return "This site doesn't currently have a self-service \"forgot password\" option. If you're locked out of your account, please reach the museum desk at hello@museodavao.ph. For your security, I can't ask for or handle your password here.";
+        return "This site doesn't currently have a self-service \"forgot password\" option. If you're locked out of your account, please visit museodavao1.vercel.app and reach the museum desk from there. For your security, I can't ask for or handle your password here.";
       }
       return "For your security, I can't ask for, store, or reveal passwords. When creating an account, your password needs at least 8 characters, including an uppercase letter, a lowercase letter, a number, and a special character (e.g. ! @ # $ %).";
     },
@@ -374,7 +374,7 @@ const MD_INTENTS = [
   {
     topic: "contact",
     test: (q) => md_fuzzyAny(q, ["contact", "email you", "reach you", "phone number", "get in touch"]),
-    handle: () => "You can reach the MuseoDavao desk at hello@museodavao.ph, or use \"Ask Museo\" (that's me!) in the site footer any time.",
+    handle: () => "You can find us at museodavao1.vercel.app, or use \"Ask Museo\" (that's me!) in the site footer any time.",
   },
 ];
 
