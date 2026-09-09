@@ -141,7 +141,12 @@ const MD_STOPWORDS = new Set([
 
 /** True if any meaningful token in `text` equals or is a close typo of `word`. */
 function md_fuzzyHas(text, word) {
-  if (text.includes(word)) return true;
+  // Whole-word/phrase match first — \b boundaries prevent false positives
+  // like "cellphone number" matching "phone number" (plain .includes()
+  // would wrongly match here since "phone number" is a literal substring
+  // of "cellphone number").
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (new RegExp(`\\b${escaped}\\b`, "i").test(text)) return true;
   // Only allow fuzzy (edit-distance) matching for longer words, and only
   // against reasonably long, non-stopword tokens — keeps short common
   // English words from accidentally matching unrelated domain terms.
@@ -196,7 +201,7 @@ const MD_SCOPE_WORDS = [
   "ticket", "fee", "price", "entrance", "admission", "discount", "student", "senior", "child",
   "address", "location", "direction", "where",
   "shop", "order", "cart", "basket", "checkout", "buy", "souvenir", "merchandise", "product",
-  "stock", "size", "delivery", "pickup", "walk-in",
+  "stock", "size", "delivery", "shipping", "ship", "pickup", "walk-in",
   "pay", "payment", "gcash", "bdo", "bpi", "cash", "reference",
   "receipt", "print", "download",
   "account", "login", "log in", "logout", "register", "sign up", "signup", "password",
@@ -257,7 +262,7 @@ const MD_INTENTS = [
   },
   {
     topic: "fee",
-    test: (q) => md_fuzzyAny(q, ["ticket", "fee", "price", "entrance", "admission", "how much", "cost", "discount"]),
+    test: (q) => md_fuzzyAny(q, ["ticket", "fee", "price", "entrance", "admission", "how much", "cost", "discount"]) && !md_fuzzyAny(q, ["delivery", "shipping", "pickup", "walk-in"]),
     handle: (q, which) => {
       if (which) return `${which.name}: ${which.fee}`;
       return `Ticket prices:\n${md_listAll("fee")}`;
@@ -313,7 +318,7 @@ const MD_INTENTS = [
   },
   {
     topic: "checkout",
-    test: (q) => md_fuzzyAny(q, ["checkout", "place order", "fulfillment", "delivery", "pickup", "walk-in"]),
+    test: (q) => md_fuzzyAny(q, ["checkout", "place order", "fulfillment", "delivery", "shipping", "ship", "pickup", "walk-in"]),
     handle: () =>
       "At checkout you choose Pickup (walk-in) or Delivery (\"online\") — Delivery needs an address. Then enter your name, email, and phone, choose a payment method, and (unless paying cash) enter your payment reference number. Submitting the form creates your order and takes you straight to a receipt you can print or download.",
   },
@@ -373,7 +378,7 @@ const MD_INTENTS = [
   },
   {
     topic: "contact",
-    test: (q) => md_fuzzyAny(q, ["contact", "email you", "reach you", "phone number", "get in touch"]),
+    test: (q) => md_fuzzyAny(q, ["contact", "email you", "reach you", "phone number", "get in touch", "email"]),
     handle: () => "You can find us at museodavao1.vercel.app, or use \"Ask Museo\" (that's me!) in the site footer any time.",
   },
 ];
