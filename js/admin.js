@@ -36,7 +36,7 @@ async function md_initAdmin() {
 
 /* ---------------- PRODUCTS ---------------- */
 let MD_ADMIN_PRODUCTS_CACHE = [];
-let MD_ADMIN_PRODUCT_FILTER = "all";
+let MD_ADMIN_PRODUCT_FILTER = "merchandise";
 
 async function md_loadAdminProducts() {
   const tbody = document.getElementById("productsTableBody");
@@ -51,9 +51,9 @@ async function md_loadAdminProducts() {
 
 function md_renderAdminProducts() {
   const tbody = document.getElementById("productsTableBody");
-  let items = MD_ADMIN_PRODUCTS_CACHE;
-  if (MD_ADMIN_PRODUCT_FILTER === "merchandise") items = items.filter((p) => p.for_sale !== false);
-  else if (MD_ADMIN_PRODUCT_FILTER === "collection") items = items.filter((p) => p.for_sale === false);
+  const items = MD_ADMIN_PRODUCT_FILTER === "collection"
+    ? MD_ADMIN_PRODUCTS_CACHE.filter((p) => p.for_sale === false)
+    : MD_ADMIN_PRODUCTS_CACHE.filter((p) => p.for_sale !== false);
 
   if (items.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7">No products in this category yet.</td></tr>`;
