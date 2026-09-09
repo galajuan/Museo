@@ -357,6 +357,11 @@ section{padding:76px 0;}
 .tag-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
 .tag-btn{font-family:var(--mono);font-size:.75rem;padding:7px 14px;border:1px solid var(--line);background:transparent;}
 .tag-btn.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+/* Admin-only: capitalize the Merchandise/Collection filter buttons and the
+   category dropdown — scoped by ID so it doesn't affect the shop's filters. */
+#adminProductFilters .tag-btn{text-transform:uppercase;letter-spacing:.04em;}
+#pCategory{text-transform:uppercase;}
+#pCategory option{text-transform:uppercase;}
 table{width:100%;border-collapse:collapse;font-size:.88rem;}
 th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;}
 th{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;opacity:.6;}
