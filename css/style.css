@@ -324,17 +324,23 @@ section{padding:76px 0;}
   background-image:linear-gradient(180deg, rgba(27,27,31,.25), rgba(27,27,31,.9)), url('../images/Nationalmuseum.jpg');
 }
 .page-hero.hero-login::before{
-  background-image:linear-gradient(180deg, rgba(27,27,31,.25), rgba(27,27,31,.9)), url('../images/hero6.jpg');
+  background-image:linear-gradient(180deg, rgba(27,27,31,.55), rgba(27,27,31,.75)), url('../images/hero6.jpg');
 }
 .page-hero.hero-login h1{font-size:clamp(2.6rem,6vw,4.4rem);}
 .hero-login-inner{
   display:grid;grid-template-columns:1fr 420px;gap:56px;align-items:center;width:100%;
 }
-.hero-login-intro .lede{color:rgba(247,244,236,.85);max-width:440px;margin-top:16px;font-size:1.05rem;}
+.hero-login-intro h1,.hero-login-intro .breadcrumb,.hero-login-intro .lede{
+  text-shadow:0 2px 18px rgba(0,0,0,.45);
+}
+.hero-login-intro .lede{color:rgba(247,244,236,.9);max-width:440px;margin-top:16px;font-size:1.05rem;}
 .hero-login-card{width:100%;}
 .hero-login-card .form-card{
   margin:0;width:100%;max-width:none;box-shadow:0 24px 60px rgba(0,0,0,.35);
+  color:var(--ink);
 }
+.hero-login-card .form-card label{color:var(--ink);}
+.hero-login-card .form-card .form-note{color:var(--ink);}
 @media (max-width:860px){
   .page-hero.hero-login{height:auto;min-height:100vh;padding:110px 0 60px;}
   .hero-login-inner{grid-template-columns:1fr;gap:36px;}
