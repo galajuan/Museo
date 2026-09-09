@@ -330,6 +330,9 @@ section{padding:76px 0;}
 .page-hero.hero-shop::before{
   background-image:linear-gradient(180deg, rgba(27,27,31,.25), rgba(27,27,31,.9)), url('../images/hero2 (3).jpg');
 }
+.page-hero.hero-admin::before{
+  background-image:linear-gradient(180deg, rgba(27,27,31,.25), rgba(27,27,31,.9)), url('../images/hero5.jpg');
+}
 .breadcrumb{font-family:var(--mono);font-size:.75rem;opacity:.7;margin-bottom:16px;}
 .info-strip{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-top:none;}
 .info-strip div{padding:20px 24px;border-right:1px solid var(--line);}
