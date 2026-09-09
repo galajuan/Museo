@@ -69,7 +69,7 @@ function md_renderFooter() {
       <div>
         <h5>Museum Desk</h5>
         <a href="#" id="footerChatLink">Ask Museo</a>
-        <a href="mailto:hello@museodavao.ph">hello@museodavao.ph</a>
+        <a href="https://museodavao1.vercel.app" target="_blank" rel="noopener">museodavao1.vercel.app</a>
       </div>
     </div>
     <div class="container footer-bottom">
