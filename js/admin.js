@@ -29,11 +29,15 @@ async function md_initAdmin() {
   document.getElementById("pImageFile").addEventListener("change", md_previewProductImage);
 
   md_loadAdminProducts();
+  md_initAdminProductFilters();
   md_loadAdminEvents();
   md_loadAdminOrders();
 }
 
 /* ---------------- PRODUCTS ---------------- */
+let MD_ADMIN_PRODUCTS_CACHE = [];
+let MD_ADMIN_PRODUCT_FILTER = "all";
+
 async function md_loadAdminProducts() {
   const tbody = document.getElementById("productsTableBody");
   const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false });
@@ -41,7 +45,22 @@ async function md_loadAdminProducts() {
     tbody.innerHTML = `<tr><td colspan="7">Error loading products.</td></tr>`;
     return;
   }
-  tbody.innerHTML = data
+  MD_ADMIN_PRODUCTS_CACHE = data;
+  md_renderAdminProducts();
+}
+
+function md_renderAdminProducts() {
+  const tbody = document.getElementById("productsTableBody");
+  let items = MD_ADMIN_PRODUCTS_CACHE;
+  if (MD_ADMIN_PRODUCT_FILTER === "merchandise") items = items.filter((p) => p.for_sale !== false);
+  else if (MD_ADMIN_PRODUCT_FILTER === "collection") items = items.filter((p) => p.for_sale === false);
+
+  if (items.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7">No products in this category yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = items
     .map((p) => {
       const isCollection = p.for_sale === false;
       return `
@@ -59,6 +78,19 @@ async function md_loadAdminProducts() {
     </tr>`;
     })
     .join("");
+}
+
+function md_initAdminProductFilters() {
+  const row = document.getElementById("adminProductFilters");
+  if (!row) return;
+  row.querySelectorAll(".tag-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      row.querySelectorAll(".tag-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      MD_ADMIN_PRODUCT_FILTER = btn.dataset.category;
+      md_renderAdminProducts();
+    });
+  });
 }
 
 function md_editProduct(p) {
