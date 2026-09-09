@@ -66,8 +66,16 @@
             </div>
             <div class="field"><label>Description</label><textarea id="pDesc" rows="3"></textarea></div>
 
+            <div class="field">
+              <label>Category</label>
+              <select id="pCategory">
+                <option value="merchandise">Merchandise (for sale)</option>
+                <option value="collection">Collection (display-only, not for sale)</option>
+              </select>
+              <p style="font-size:.78rem;opacity:.65;margin-top:6px;">Merchandise items can be added to the basket and purchased. Collection items are shown for browsing only.</p>
+            </div>
+
             <div class="check-row"><input type="checkbox" id="pActive" checked><label style="margin:0;">Visible in shop</label></div>
-            <div class="check-row"><input type="checkbox" id="pForSale" checked><label style="margin:0;">For sale (uncheck for display-only collection items)</label></div>
             <div style="display:flex;gap:10px;">
               <button type="submit" class="btn btn-brass" style="flex:1;justify-content:center;">Save product</button>
               <button type="button" class="btn-sm-outline" id="resetProductFormBtn">Clear</button>
@@ -78,8 +86,8 @@
           <h3 style="font-size:1.15rem;">All products</h3>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>Wing</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody id="productsTableBody"><tr><td colspan="6">Loading…</td></tr></tbody>
+              <thead><tr><th>Name</th><th>Wing</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="productsTableBody"><tr><td colspan="7">Loading…</td></tr></tbody>
             </table>
           </div>
         </div>
