@@ -9,37 +9,38 @@
 <body>
 
 <div class="page-hero hero-login">
-  <div class="container">
-    <div class="breadcrumb"><a href="index.html">Home</a> / Account</div>
-    <h1 id="pageTitle">Welcome back!</h1>
+  <div class="container hero-login-inner">
+    <div class="hero-login-intro">
+      <div class="breadcrumb"><a href="index.html">Home</a> / Account</div>
+      <h1 id="pageTitle">Welcome back!</h1>
+      <p class="lede">Sign in to track your orders, save favorites from every wing, and check out faster next time.</p>
+    </div>
+
+    <div class="hero-login-card">
+      <form class="form-card" id="loginForm">
+        <div class="field"><label>Email</label><input type="email" id="loginEmail" required></div>
+        <div class="field"><label>Password</label><input type="password" id="loginPassword" required></div>
+        <p class="form-error" id="loginError"></p>
+        <button type="submit" class="btn btn-brass" style="width:100%;justify-content:center;">Log in</button>
+        <p class="form-note">New here? <a href="#" id="showSignup" style="color:var(--brass);">Create an account</a></p>
+      </form>
+
+      <form class="form-card" id="signupForm" style="display:none;">
+        <div class="field"><label>Full name</label><input type="text" id="suName" required></div>
+        <div class="field"><label>Email</label><input type="email" id="suEmail" required></div>
+        <div class="field"><label>Phone</label><input type="tel" id="suPhone"></div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="suPassword" required minlength="8" placeholder="At least 8 characters">
+          <p style="font-size:.75rem;opacity:.7;margin-top:4px;">Must include an uppercase letter, a lowercase letter, a number, and a special character (e.g. ! @ # $ %).</p>
+        </div>
+        <p class="form-error" id="signupError"></p>
+        <button type="submit" class="btn btn-brass" style="width:100%;justify-content:center;">Create account</button>
+        <p class="form-note">Already have an account? <a href="#" id="showLogin" style="color:var(--brass);">Log in</a></p>
+      </form>
+    </div>
   </div>
 </div>
-
-<section>
-  <div class="container">
-    <form class="form-card" id="loginForm">
-      <div class="field"><label>Email</label><input type="email" id="loginEmail" required></div>
-      <div class="field"><label>Password</label><input type="password" id="loginPassword" required></div>
-      <p class="form-error" id="loginError"></p>
-      <button type="submit" class="btn btn-brass" style="width:100%;justify-content:center;">Log in</button>
-      <p class="form-note">New here? <a href="#" id="showSignup" style="color:var(--brass);">Create an account</a></p>
-    </form>
-
-    <form class="form-card" id="signupForm" style="display:none;margin-top:20px;">
-      <div class="field"><label>Full name</label><input type="text" id="suName" required></div>
-      <div class="field"><label>Email</label><input type="email" id="suEmail" required></div>
-      <div class="field"><label>Phone</label><input type="tel" id="suPhone"></div>
-      <div class="field">
-        <label>Password</label>
-        <input type="password" id="suPassword" required minlength="8" placeholder="At least 8 characters">
-        <p style="font-size:.75rem;opacity:.7;margin-top:4px;">Must include an uppercase letter, a lowercase letter, a number, and a special character (e.g. ! @ # $ %).</p>
-      </div>
-      <p class="form-error" id="signupError"></p>
-      <button type="submit" class="btn btn-brass" style="width:100%;justify-content:center;">Create account</button>
-      <p class="form-note">Already have an account? <a href="#" id="showLogin" style="color:var(--brass);">Log in</a></p>
-    </form>
-  </div>
-</section>
 
 <script>window.MD_PAGE = "login";</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
