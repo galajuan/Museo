@@ -90,7 +90,7 @@ async function md_loadAdminProducts() {
   const tbody = document.getElementById("productsTableBody");
   const { data, error } = await supabase.from("products").select("*").order("created_at", { ascending: false });
   if (error) {
-    tbody.innerHTML = `<tr><td colspan="7">Error loading products.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8">Error loading products.</td></tr>`;
     return;
   }
   MD_ADMIN_PRODUCTS_CACHE = data;
@@ -104,7 +104,7 @@ function md_renderAdminProducts() {
     : MD_ADMIN_PRODUCTS_CACHE.filter((p) => p.for_sale !== false);
 
   if (items.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7">No products in this category yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8">No products in this category yet.</td></tr>`;
     return;
   }
 
@@ -117,6 +117,7 @@ function md_renderAdminProducts() {
       <td>${MD_MUSEUM_LABEL[p.museum_id] || "—"}</td>
       <td><span class="product-category ${isCollection ? "collection" : "merch"}" style="font-size:.68rem;">${isCollection ? "Collection" : "Merchandise"}</span></td>
       <td>₱${Number(p.price).toFixed(2)}</td>
+      <td>${md_colorCellHtml(p)}</td>
       <td>${md_stockCellHtml(p)}</td>
       <td>${p.is_active ? "Active" : "Hidden"}</td>
       <td>
@@ -128,12 +129,29 @@ function md_renderAdminProducts() {
     .join("");
 }
 
+/** Color column: shows the colors this product is available in (Black,
+    White, or both), or a clear "No available color" note when the admin
+    hasn't set any. */
+function md_colorCellHtml(p) {
+  const colors = md_parseColors(p.available_colors);
+  if (colors.length === 0) return `<span class="stock-cell-total" style="opacity:.55;font-weight:400;">No available color</span>`;
+  return colors.map((c) => `<span class="product-color-pill product-color-${c.toLowerCase()}">${c}</span>`).join(" ");
+}
+
+/** Parses the comma-separated available_colors column into a clean array. */
+function md_parseColors(raw) {
+  return (raw || "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+}
+
 /** Stock column: shows the per-size breakdown for sized products, or just
     the plain number otherwise — with the running total always visible. */
 function md_stockCellHtml(p) {
   if (p.has_sizes && p.size_stock) {
     const order = ["S", "M", "L", "XL"];
-    const rows = order.map((s) => `${s}: ${Number(p.size_stock[s]) || 0}`).join(" · ");
+    const rows = order.map((s) => `<span class="stock-cell-size">${s}: ${Number(p.size_stock[s]) || 0}</span>`).join("");
     return `<div class="stock-cell-sizes">${rows}</div><div class="stock-cell-total">Total: ${Number(p.stock) || 0}</div>`;
   }
   return `<span class="stock-cell-total">${Number(p.stock) || 0}</span>`;
@@ -183,6 +201,9 @@ function md_editProduct(p) {
   document.getElementById("pName").value = p.name;
   document.getElementById("pMuseum").value = p.museum_id || "";
   document.getElementById("pPrice").value = p.price;
+  const colors = md_parseColors(p.available_colors);
+  document.getElementById("pColorBlack").checked = colors.includes("Black");
+  document.getElementById("pColorWhite").checked = colors.includes("White");
   document.getElementById("pHasSizes").checked = !!p.has_sizes;
   md_toggleSizeStockFields();
   if (p.has_sizes) {
@@ -219,6 +240,8 @@ function md_resetProductForm() {
   preview.src = "";
   preview.style.display = "none";
   document.getElementById("pCategory").value = "merchandise";
+  document.getElementById("pColorBlack").checked = false;
+  document.getElementById("pColorWhite").checked = false;
   document.getElementById("pHasSizes").checked = false;
   ["pStockS", "pStockM", "pStockL", "pStockXL"].forEach((id) => (document.getElementById(id).value = 0));
   md_toggleSizeStockFields();
@@ -283,6 +306,13 @@ async function md_saveProduct(e) {
     name: document.getElementById("pName").value.trim(),
     museum_id: document.getElementById("pMuseum").value || null,
     price: parseFloat(document.getElementById("pPrice").value),
+    available_colors:
+      [
+        document.getElementById("pColorBlack").checked ? "Black" : null,
+        document.getElementById("pColorWhite").checked ? "White" : null,
+      ]
+        .filter(Boolean)
+        .join(",") || null,
     has_sizes: hasSizes,
     size_stock: sizeStock,
     stock: totalStock,
@@ -541,7 +571,7 @@ async function md_updateOrderStatus(id, status) {
     if (order && !order.stock_restored) {
       const items = order.order_items || [];
       for (const item of items) {
-        const nameSizeMatch = /\(Size (\w+)\)$/.exec(item.product_name || "");
+        const nameSizeMatch = /\(Size (\w+)/.exec(item.product_name || "");
         await supabase.rpc("increment_product_stock", {
           p_product_id: item.product_id,
           p_qty: item.quantity,
