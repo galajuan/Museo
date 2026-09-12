@@ -56,6 +56,17 @@
             </div>
             <div class="field"><label>Price (₱)</label><input type="number" step="0.01" id="pPrice" required></div>
 
+            <div class="field">
+              <label>Available colors</label>
+              <div class="check-row" style="margin-bottom:6px;">
+                <input type="checkbox" id="pColorBlack"><label style="margin:0;">Black</label>
+              </div>
+              <div class="check-row">
+                <input type="checkbox" id="pColorWhite"><label style="margin:0;">White</label>
+              </div>
+              <p style="font-size:.78rem;opacity:.65;margin-top:2px;">Check the colors this item comes in — shoppers will pick between them, the same way they pick a size. Leave both unchecked if there's no color option.</p>
+            </div>
+
             <div class="check-row"><input type="checkbox" id="pHasSizes"><label style="margin:0;">Sold by size (e.g. T-shirts: S / M / L / XL)</label></div>
 
             <div class="field" id="pStockField">
@@ -109,8 +120,8 @@
           </div>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>Wing</th><th>Category</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody id="productsTableBody"><tr><td colspan="7">Loading…</td></tr></tbody>
+              <thead><tr><th>Name</th><th>Wing</th><th>Category</th><th>Price</th><th>Colors</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="productsTableBody"><tr><td colspan="8">Loading…</td></tr></tbody>
             </table>
           </div>
         </div>
