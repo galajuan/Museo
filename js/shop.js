@@ -36,6 +36,32 @@ async function md_loadProducts() {
 
   MD_PRODUCTS_CACHE = data || [];
   md_renderProducts();
+  md_subscribeShopRealtime();
+}
+
+/* ---------------- Real-time stock sync ----------------
+   Any stock change made in the admin dashboard, or by another
+   shopper checking out right now, is pushed here instantly so the
+   numbers on this page (and the Add-to-basket buttons) stay accurate
+   without anyone refreshing. */
+let MD_SHOP_REALTIME_CHANNEL = null;
+
+function md_subscribeShopRealtime() {
+  if (MD_SHOP_REALTIME_CHANNEL || typeof supabase === "undefined" || !CONFIG_OK) return;
+  MD_SHOP_REALTIME_CHANNEL = supabase
+    .channel("shop-products-live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "products" }, (payload) => {
+      if (payload.eventType === "DELETE") {
+        MD_PRODUCTS_CACHE = MD_PRODUCTS_CACHE.filter((p) => p.id !== payload.old.id);
+      } else {
+        const updated = payload.new;
+        const idx = MD_PRODUCTS_CACHE.findIndex((p) => p.id === updated.id);
+        if (idx >= 0) MD_PRODUCTS_CACHE[idx] = { ...MD_PRODUCTS_CACHE[idx], ...updated };
+        else if (updated.is_active) MD_PRODUCTS_CACHE.unshift(updated);
+      }
+      md_renderProducts();
+    })
+    .subscribe();
 }
 
 function md_renderProducts() {
@@ -69,14 +95,47 @@ function md_renderProducts() {
     return;
   }
 
-  grid.innerHTML = items
-    .map((p) => {
-      const sizeId = `size-${p.id}`;
-      const qtyId = `qty-${p.id}`;
-      const showSize = typeof md_needsSize === "function" && md_needsSize(p) && p.for_sale !== false;
-      const isCollection = p.for_sale === false;
-      return `
-    <div class="product-card">
+  grid.innerHTML = items.map((p) => md_productCardHtml(p)).join("");
+}
+
+const MD_SIZE_ORDER = ["S", "M", "L", "XL"];
+
+function md_productCardHtml(p) {
+  const sizeId = `size-${p.id}`;
+  const qtyId = `qty-${p.id}`;
+  const showSize = typeof md_needsSize === "function" && md_needsSize(p) && p.for_sale !== false;
+  const isCollection = p.for_sale === false;
+  const sizeStock = p.size_stock || {};
+  const totalStock = Number(p.stock) || 0;
+
+  // For sized items, the "current" size defaults to whichever the shopper
+  // already had selected, or the first size that still has stock.
+  const prevSel = document.getElementById(sizeId)?.value;
+  const defaultSize =
+    prevSel && sizeStock[prevSel] > 0
+      ? prevSel
+      : MD_SIZE_ORDER.find((s) => (Number(sizeStock[s]) || 0) > 0) || MD_SIZE_ORDER[0];
+  const stockForSelectedSize = showSize ? Number(sizeStock[defaultSize]) || 0 : totalStock;
+
+  const stockNoteClass = totalStock <= 0 ? "out" : totalStock <= 5 ? "low" : "";
+  const stockNoteText = isCollection
+    ? "Collection item"
+    : totalStock > 0
+    ? `${totalStock} in stock`
+    : "Out of stock";
+
+  const sizeOptions = showSize
+    ? MD_SIZE_ORDER.map((s) => {
+        const left = Number(sizeStock[s]) || 0;
+        const label = left > 0 ? `${s} — ${left} left` : `${s} — sold out`;
+        return `<option value="${s}" ${s === defaultSize ? "selected" : ""} ${left <= 0 ? "disabled" : ""}>${label}</option>`;
+      }).join("")
+    : "";
+
+  const disableAdd = isCollection || totalStock <= 0 || (showSize && stockForSelectedSize <= 0);
+
+  return `
+    <div class="product-card" data-product-id="${p.id}">
       <div class="product-media">${
         p.image_url
           ? `${md_zoomableImg(p.image_url, p.name)}<span class="zoom-hint">🔍</span>`
@@ -90,31 +149,38 @@ function md_renderProducts() {
         ${
           showSize
             ? `<div class="size-field"><label for="${sizeId}">Size</label>
-                <select id="${sizeId}" class="size-select">
-                  <option value="S">S</option>
-                  <option value="M" selected>M</option>
-                  <option value="L">L</option>
-                  <option value="XL">XL</option>
+                <select id="${sizeId}" class="size-select" onchange="md_onSizeChange('${p.id}')">
+                  ${sizeOptions}
                 </select>
-              </div>`
+                <div class="size-stock-hint ${stockForSelectedSize <= 3 && stockForSelectedSize > 0 ? "low" : ""}" id="sizehint-${p.id}">
+                  ${stockForSelectedSize > 0 ? `${stockForSelectedSize} left in size ${defaultSize}` : "This size is sold out"}
+                </div>`
             : ""
         }
-        ${!isCollection && p.stock > 0 ? md_qtyFieldHtml(qtyId, p.stock, p.price) : ""}
+        ${!isCollection && stockForSelectedSize > 0 ? md_qtyFieldHtml(qtyId, stockForSelectedSize, p.price) : ""}
         <div class="product-foot">
           <span class="price">₱${Number(p.price).toFixed(2)}</span>
-          <span class="stock-note">${p.for_sale === false ? "Collection item" : p.stock > 0 ? p.stock + " in stock" : "Out of stock"}</span>
+          <span class="stock-note ${stockNoteClass}">${stockNoteText}</span>
         </div>
         ${
           p.for_sale === false
             ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
-            : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${p.stock > 0 ? `"${qtyId}"` : "null"})'>
-          ${p.stock <= 0 ? "Out of stock" : "Add to basket"}
+            : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${disableAdd ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${stockForSelectedSize > 0 ? `"${qtyId}"` : "null"})'>
+          ${disableAdd ? "Out of stock" : "Add to basket"}
         </button>`
         }
       </div>
     </div>`;
-    })
-    .join("");
+}
+
+/** Re-render just the one card when the shopper switches sizes, so the
+    quantity max / hint / button update to match that size's stock. */
+function md_onSizeChange(productId) {
+  const p = MD_PRODUCTS_CACHE.find((pr) => String(pr.id) === String(productId));
+  if (!p) return;
+  const card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
+  if (!card) return;
+  card.outerHTML = md_productCardHtml(p);
 }
 
 function md_initShopSearch() {
@@ -225,6 +291,38 @@ async function md_placeOrder(e) {
 
   const btn = document.getElementById("placeOrderBtn");
   btn.disabled = true;
+  btn.textContent = "Checking stock...";
+
+  /* Reserve stock FIRST, one item at a time, using the atomic RPC function.
+     This is what keeps inventory accurate in real time even if two people
+     are checking out at once — the database itself rejects overselling.
+     If any item fails (someone beat you to the last one), everything
+     already reserved in this loop is put back and no order is created. */
+  const reserved = [];
+  for (const item of cart) {
+    const { data: updatedProduct, error: stockErr } = await supabase.rpc("decrement_product_stock", {
+      p_product_id: item.id,
+      p_qty: item.qty,
+      p_size: item.size || null,
+    });
+    if (stockErr) {
+      // Roll back anything already reserved in this checkout attempt
+      for (const r of reserved) {
+        await supabase.rpc("increment_product_stock", { p_product_id: r.id, p_qty: r.qty, p_size: r.size || null });
+      }
+      errEl.textContent = `Sorry — "${item.name}"${item.size ? ` (Size ${item.size})` : ""} ${stockErr.message.includes("Only") ? stockErr.message.toLowerCase() : "just sold out"}. Please update your basket and try again.`;
+      errEl.style.display = "block";
+      btn.disabled = false;
+      btn.textContent = "Place order";
+      md_loadProducts(); // refresh so the shopper sees current stock
+      return;
+    }
+    reserved.push(item);
+    // Keep the local cache fresh in case the realtime event hasn't arrived yet
+    const idx = MD_PRODUCTS_CACHE.findIndex((p) => p.id === item.id);
+    if (idx >= 0 && updatedProduct) MD_PRODUCTS_CACHE[idx] = { ...MD_PRODUCTS_CACHE[idx], ...updatedProduct };
+  }
+
   btn.textContent = "Placing order...";
 
   const subtotal = md_cartSubtotal();
@@ -250,10 +348,15 @@ async function md_placeOrder(e) {
 
   if (orderErr) {
     console.error(orderErr);
+    // Order record failed to save — put the reserved stock back so it isn't lost
+    for (const r of reserved) {
+      await supabase.rpc("increment_product_stock", { p_product_id: r.id, p_qty: r.qty, p_size: r.size || null });
+    }
     errEl.textContent = "Couldn't place your order — please check your Supabase connection and try again.";
     errEl.style.display = "block";
     btn.disabled = false;
     btn.textContent = "Place order";
+    md_loadProducts();
     return;
   }
 
