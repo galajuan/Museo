@@ -74,9 +74,12 @@
     const grid = document.getElementById("wingProductGrid");
     grid.innerHTML = MD_WING_PRODUCTS.map(p => {
       const sizeId = `size-${p.id}`;
+      const colorId = `color-${p.id}`;
       const qtyId = `qty-${p.id}`;
       const showSize = typeof md_needsSize === "function" && md_needsSize(p) && p.for_sale !== false;
       const isCollection = p.for_sale === false;
+      const colorOptions = (p.available_colors || "").split(",").map(c => c.trim()).filter(Boolean);
+      const showColor = colorOptions.length > 0 && !isCollection;
       return `
       <div class="product-card">
         <div class="product-media">${p.image_url ? `${md_zoomableImg(p.image_url, p.name)}<span class="zoom-hint">🔍</span>` : `<span class="ph">No image yet</span>`}</div>
@@ -85,6 +88,17 @@
           <span class="product-category ${isCollection ? "collection" : "merch"}">${isCollection ? "Collection" : "Merchandise"}</span>
           <h4>${p.name}</h4>
           <p class="product-desc">${p.description || ""}</p>
+          ${
+            !isCollection
+              ? showColor
+                ? `<div class="size-field"><label for="${colorId}">Color</label>
+                    <select id="${colorId}" class="size-select">
+                      ${colorOptions.map(c => `<option value="${c}">${c}</option>`).join("")}
+                    </select>
+                  </div>`
+                : `<div class="product-color-row">Color: <span style="opacity:.55;">No available color</span></div>`
+              : ""
+          }
           ${
             showSize
               ? `<div class="size-field"><label for="${sizeId}">Size</label>
@@ -105,7 +119,7 @@
           ${
             p.for_sale === false
               ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
-              : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${p.stock > 0 ? `"${qtyId}"` : "null"})'>${p.stock <= 0 ? "Out of stock" : "Add to basket"}</button>`
+              : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${p.stock > 0 ? `"${qtyId}"` : "null"}, ${showColor ? `"${colorId}"` : "null"})'>${p.stock <= 0 ? "Out of stock" : "Add to basket"}</button>`
           }
         </div>
       </div>`;
