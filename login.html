@@ -94,7 +94,9 @@
 
     const { error } = await md_signUp({ fullName, email, phone, password });
     if (error) {
-      errEl.textContent = error.message;
+      errEl.textContent = /rate limit/i.test(error.message)
+        ? "Too many sign-up emails have gone out in the last hour (this is a Supabase account limit, not a problem with your details). Please wait a bit and try again."
+        : error.message;
       errEl.style.display = "block";
       return;
     }
