@@ -27,11 +27,44 @@ async function md_initAdmin() {
   document.getElementById("resetProductFormBtn").addEventListener("click", md_resetProductForm);
   document.getElementById("resetEventFormBtn").addEventListener("click", md_resetEventForm);
   document.getElementById("pImageFile").addEventListener("change", md_previewProductImage);
+  document.getElementById("pHasSizes").addEventListener("change", md_toggleSizeStockFields);
 
   md_loadAdminProducts();
   md_initAdminProductFilters();
   md_loadAdminEvents();
   md_loadAdminOrders();
+  md_subscribeAdminRealtime();
+}
+
+/* ---------------- Real-time sync ----------------
+   Keeps the admin dashboard current the instant stock changes (from a
+   sale on the shop, or another admin editing a product) or a new order
+   comes in — no refresh needed. */
+function md_subscribeAdminRealtime() {
+  if (typeof supabase === "undefined") return;
+
+  supabase
+    .channel("admin-products-live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "products" }, (payload) => {
+      if (payload.eventType === "DELETE") {
+        MD_ADMIN_PRODUCTS_CACHE = MD_ADMIN_PRODUCTS_CACHE.filter((p) => p.id !== payload.old.id);
+      } else {
+        const idx = MD_ADMIN_PRODUCTS_CACHE.findIndex((p) => p.id === payload.new.id);
+        if (idx >= 0) MD_ADMIN_PRODUCTS_CACHE[idx] = { ...MD_ADMIN_PRODUCTS_CACHE[idx], ...payload.new };
+        else MD_ADMIN_PRODUCTS_CACHE.unshift(payload.new);
+      }
+      md_renderAdminProducts();
+    })
+    .subscribe();
+
+  supabase
+    .channel("admin-orders-live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+      // Order rows can change shape (new order, status update); simplest and
+      // safest is to refetch with the order_items join so totals stay correct.
+      md_loadAdminOrders();
+    })
+    .subscribe();
 }
 
 /* ---------------- PRODUCTS ---------------- */
@@ -69,7 +102,7 @@ function md_renderAdminProducts() {
       <td>${MD_MUSEUM_LABEL[p.museum_id] || "—"}</td>
       <td><span class="product-category ${isCollection ? "collection" : "merch"}" style="font-size:.68rem;">${isCollection ? "Collection" : "Merchandise"}</span></td>
       <td>₱${Number(p.price).toFixed(2)}</td>
-      <td>${p.stock}</td>
+      <td>${md_stockCellHtml(p)}</td>
       <td>${p.is_active ? "Active" : "Hidden"}</td>
       <td>
         <button class="btn-sm-outline" onclick='md_editProduct(${JSON.stringify(p)})'>Edit</button>
@@ -78,6 +111,42 @@ function md_renderAdminProducts() {
     </tr>`;
     })
     .join("");
+}
+
+/** Stock column: shows the per-size breakdown for sized products, or just
+    the plain number otherwise — with the running total always visible. */
+function md_stockCellHtml(p) {
+  if (p.has_sizes && p.size_stock) {
+    const order = ["S", "M", "L", "XL"];
+    const rows = order.map((s) => `${s}: ${Number(p.size_stock[s]) || 0}`).join(" · ");
+    return `<div class="stock-cell-sizes">${rows}</div><div class="stock-cell-total">Total: ${Number(p.stock) || 0}</div>`;
+  }
+  return `<span class="stock-cell-total">${Number(p.stock) || 0}</span>`;
+}
+
+/** Shows the size-by-size inputs instead of the plain stock field, and
+    keeps a running "Total stock" readout as the admin types. */
+function md_toggleSizeStockFields() {
+  const sized = document.getElementById("pHasSizes").checked;
+  document.getElementById("pStockField").style.display = sized ? "none" : "block";
+  document.getElementById("pSizeStockField").style.display = sized ? "block" : "none";
+  if (sized) {
+    document.getElementById("pStock").removeAttribute("required");
+    md_updateSizeStockTotal();
+  } else {
+    document.getElementById("pStock").setAttribute("required", "true");
+  }
+}
+
+function md_updateSizeStockTotal() {
+  const s = parseInt(document.getElementById("pStockS").value, 10) || 0;
+  const m = parseInt(document.getElementById("pStockM").value, 10) || 0;
+  const l = parseInt(document.getElementById("pStockL").value, 10) || 0;
+  const xl = parseInt(document.getElementById("pStockXL").value, 10) || 0;
+  const total = s + m + l + xl;
+  document.getElementById("pSizeStockTotal").textContent = `Total stock: ${total}`;
+  document.getElementById("pStock").value = total;
+  return total;
 }
 
 function md_initAdminProductFilters() {
@@ -99,7 +168,18 @@ function md_editProduct(p) {
   document.getElementById("pName").value = p.name;
   document.getElementById("pMuseum").value = p.museum_id || "";
   document.getElementById("pPrice").value = p.price;
-  document.getElementById("pStock").value = p.stock;
+  document.getElementById("pHasSizes").checked = !!p.has_sizes;
+  md_toggleSizeStockFields();
+  if (p.has_sizes) {
+    const ss = p.size_stock || {};
+    document.getElementById("pStockS").value = Number(ss.S) || 0;
+    document.getElementById("pStockM").value = Number(ss.M) || 0;
+    document.getElementById("pStockL").value = Number(ss.L) || 0;
+    document.getElementById("pStockXL").value = Number(ss.XL) || 0;
+    md_updateSizeStockTotal();
+  } else {
+    document.getElementById("pStock").value = p.stock;
+  }
   document.getElementById("pImage").value = p.image_url || "";
   document.getElementById("pImageFile").value = "";
   const preview = document.getElementById("pImagePreview");
@@ -124,6 +204,9 @@ function md_resetProductForm() {
   preview.src = "";
   preview.style.display = "none";
   document.getElementById("pCategory").value = "merchandise";
+  document.getElementById("pHasSizes").checked = false;
+  ["pStockS", "pStockM", "pStockL", "pStockXL"].forEach((id) => (document.getElementById(id).value = 0));
+  md_toggleSizeStockFields();
   document.getElementById("productFormTitle").textContent = "Add a product";
 }
 
@@ -168,11 +251,26 @@ async function md_saveProduct(e) {
     }
   }
 
+  const hasSizes = document.getElementById("pHasSizes").checked;
+  const sizeStock = hasSizes
+    ? {
+        S: parseInt(document.getElementById("pStockS").value, 10) || 0,
+        M: parseInt(document.getElementById("pStockM").value, 10) || 0,
+        L: parseInt(document.getElementById("pStockL").value, 10) || 0,
+        XL: parseInt(document.getElementById("pStockXL").value, 10) || 0,
+      }
+    : null;
+  const totalStock = hasSizes
+    ? Object.values(sizeStock).reduce((a, b) => a + b, 0)
+    : parseInt(document.getElementById("pStock").value, 10) || 0;
+
   const payload = {
     name: document.getElementById("pName").value.trim(),
     museum_id: document.getElementById("pMuseum").value || null,
     price: parseFloat(document.getElementById("pPrice").value),
-    stock: parseInt(document.getElementById("pStock").value, 10),
+    has_sizes: hasSizes,
+    size_stock: sizeStock,
+    stock: totalStock,
     image_url: imageUrl,
     description: document.getElementById("pDesc").value.trim(),
     is_active: document.getElementById("pActive").checked,
@@ -202,6 +300,22 @@ async function md_deleteProduct(id) {
   if (!confirm("Remove this product? This can't be undone.")) return;
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) {
+    // Product is referenced by past orders (order history). Run
+    // supabase/fix_product_delete_constraint.sql once to allow real
+    // deletion — until then, offer hiding it as a safe fallback.
+    if (error.message && /order_items_product_id_fkey/i.test(error.message)) {
+      const hideInstead = confirm(
+        "This product is part of past orders, so it can't be permanently deleted without breaking that order history.\n\n" +
+          "Run supabase/fix_product_delete_constraint.sql in Supabase to allow deleting it anyway.\n\n" +
+          "For now, would you like to hide it from the shop instead? (Click OK to hide, Cancel to leave it as is.)"
+      );
+      if (hideInstead) {
+        const { error: hideErr } = await supabase.from("products").update({ is_active: false }).eq("id", id);
+        if (hideErr) alert("Couldn't hide product: " + hideErr.message);
+        else md_loadAdminProducts();
+      }
+      return;
+    }
     alert("Couldn't remove product: " + error.message);
     return;
   }
@@ -288,37 +402,106 @@ async function md_deleteEvent(id) {
 }
 
 /* ---------------- ORDERS ---------------- */
+let MD_ADMIN_ORDERS_CACHE = [];
+const MD_ORDER_STATUSES = ["pending", "paid", "preparing", "ready", "completed", "cancelled"];
+
 async function md_loadAdminOrders() {
   const tbody = document.getElementById("ordersTableBody");
-  const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+  // Nested select pulls each order's line items in the same request, so
+  // order details are ready to show instantly with no extra round-trip.
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*, order_items(*)")
+    .order("created_at", { ascending: false });
   if (error) {
-    tbody.innerHTML = `<tr><td colspan="7">Error loading orders.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8">Error loading orders.</td></tr>`;
+    console.error(error);
     return;
   }
-  const statuses = ["pending", "paid", "preparing", "ready", "completed", "cancelled"];
-  tbody.innerHTML = data
-    .map(
-      (o) => `
-    <tr>
+  MD_ADMIN_ORDERS_CACHE = data || [];
+  md_renderAdminOrders();
+}
+
+function md_renderAdminOrders() {
+  const tbody = document.getElementById("ordersTableBody");
+  if (MD_ADMIN_ORDERS_CACHE.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8">No orders yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = MD_ADMIN_ORDERS_CACHE
+    .map((o) => {
+      const items = o.order_items || [];
+      return `
+    <tr class="order-row-toggle" onclick="md_toggleOrderDetails('${o.id}')">
+      <td>▸</td>
       <td>${o.order_no}</td>
       <td>${o.guest_name}<br><span style="opacity:.6;font-size:.78rem;">${o.guest_email}</span></td>
       <td>${o.fulfillment === "online" ? "Delivery" : "Pickup"}</td>
-      <td>${o.payment_method.toUpperCase()}${o.payment_reference ? `<br><span style="opacity:.6;font-size:.78rem;">Ref: ${o.payment_reference}</span>` : ""}</td>
+      <td>${(o.payment_method || "").toUpperCase()}${o.payment_reference ? `<br><span style="opacity:.6;font-size:.78rem;">Ref: ${o.payment_reference}</span>` : ""}</td>
       <td>₱${Number(o.total).toFixed(2)}</td>
-      <td>
+      <td onclick="event.stopPropagation()">
         <select onchange="md_updateOrderStatus('${o.id}', this.value)">
-          ${statuses.map((s) => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}
+          ${MD_ORDER_STATUSES.map((s) => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}
         </select>
       </td>
-      <td><a href="receipt.html?order_no=${o.order_no}" target="_blank" class="btn-sm-outline" style="text-decoration:none;">Receipt</a></td>
-    </tr>`
-    )
+      <td onclick="event.stopPropagation()"><a href="receipt.html?order_no=${o.order_no}" target="_blank" class="btn-sm-outline" style="text-decoration:none;">Receipt</a></td>
+    </tr>
+    <tr class="order-details-row" id="orderDetails-${o.id}" style="display:none;">
+      <td colspan="8">
+        <div class="order-details-wrap">
+          <div class="order-meta-line">${items.length} item${items.length === 1 ? "" : "s"} · ${o.fulfillment === "online" ? `Delivering to: ${o.delivery_address || "—"}` : "Walk-in pickup"} · Placed ${md_formatDate ? md_formatDate(o.created_at) : new Date(o.created_at).toLocaleDateString()}</div>
+          <table>
+            <thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Line total</th></tr></thead>
+            <tbody>
+              ${
+                items.length
+                  ? items
+                      .map(
+                        (i) =>
+                          `<tr><td>${i.product_name}</td><td>${i.quantity}</td><td>₱${Number(i.unit_price).toFixed(2)}</td><td>₱${Number(i.line_total).toFixed(2)}</td></tr>`
+                      )
+                      .join("")
+                  : `<tr><td colspan="4">No item details recorded for this order.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+      </td>
+    </tr>`;
+    })
     .join("");
+}
+
+function md_toggleOrderDetails(id) {
+  const row = document.getElementById(`orderDetails-${id}`);
+  if (!row) return;
+  row.style.display = row.style.display === "none" ? "table-row" : "none";
 }
 
 async function md_updateOrderStatus(id, status) {
   const { error } = await supabase.from("orders").update({ status }).eq("id", id);
-  if (error) alert("Couldn't update status: " + error.message);
+  if (error) {
+    alert("Couldn't update status: " + error.message);
+    return;
+  }
+
+  // Cancelling an order puts its items' stock back — real-time, and only once.
+  if (status === "cancelled") {
+    const order = MD_ADMIN_ORDERS_CACHE.find((o) => o.id === id);
+    if (order && !order.stock_restored) {
+      const items = order.order_items || [];
+      for (const item of items) {
+        const nameSizeMatch = /\(Size (\w+)\)$/.exec(item.product_name || "");
+        await supabase.rpc("increment_product_stock", {
+          p_product_id: item.product_id,
+          p_qty: item.quantity,
+          p_size: nameSizeMatch ? nameSizeMatch[1] : null,
+        });
+      }
+      await supabase.from("orders").update({ stock_restored: true }).eq("id", id);
+    }
+  }
+  md_loadAdminOrders();
 }
 
 document.addEventListener("DOMContentLoaded", md_initAdmin);
