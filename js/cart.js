@@ -1,8 +1,18 @@
 /* =========================================================
    Cart — persisted in localStorage so it survives across pages
-   Cart item shape: { id, name, price, image_url, qty, museum_id, size }
+   Cart item shape: { id, name, price, image_url, qty, museum_id, size, color }
    ========================================================= */
 const MD_CART_KEY = "museodavao_cart_v1";
+
+/** Builds the "Name (Size M, Black)" style label used in the cart drawer,
+    checkout summary, order records, and receipts — kept in one place so
+    they always stay in sync. */
+function md_cartItemLabel(i) {
+  const details = [];
+  if (i.size) details.push(`Size ${i.size}`);
+  if (i.color) details.push(i.color);
+  return details.length ? `${i.name} (${details.join(", ")})` : i.name;
+}
 
 /* Products flagged "has_sizes" in the admin dashboard (e.g. T-shirts) sell
    in sizes, each with its own stock count. Falls back to the old
@@ -35,9 +45,9 @@ function md_saveCart(cart) {
   md_renderCart();
 }
 
-function md_addToCart(product, qty = 1, size = null) {
+function md_addToCart(product, qty = 1, size = null, color = null) {
   const cart = md_getCart();
-  const existing = cart.find((i) => i.id === product.id && (i.size || null) === (size || null));
+  const existing = cart.find((i) => i.id === product.id && (i.size || null) === (size || null) && (i.color || null) === (color || null));
   if (existing) {
     existing.qty += qty;
   } else {
@@ -49,21 +59,29 @@ function md_addToCart(product, qty = 1, size = null) {
       qty,
       museum_id: product.museum_id || "",
       size: size || null,
+      color: color || null,
     });
   }
   md_saveCart(cart);
   const qtyLabel = qty > 1 ? ` (×${qty})` : "";
-  md_toast(size ? `Added "${product.name}" (Size ${size})${qtyLabel} to your basket` : `Added "${product.name}"${qtyLabel} to your basket`);
+  const details = [size ? `Size ${size}` : null, color].filter(Boolean).join(", ");
+  md_toast(details ? `Added "${product.name}" (${details})${qtyLabel} to your basket` : `Added "${product.name}"${qtyLabel} to your basket`);
   md_openCart();
 }
 
-/* Used by product cards that render a size <select> and/or a quantity
-   stepper — reads the chosen size/qty (if present) before adding to the basket. */
-function md_addToCartFromCard(product, sizeSelectId, qtyInputId) {
+/* Used by product cards that render size and/or color <select>s and/or a
+   quantity stepper — reads the chosen size/color/qty (if present) before
+   adding to the basket. */
+function md_addToCartFromCard(product, sizeSelectId, qtyInputId, colorSelectId) {
   let size = null;
   if (sizeSelectId) {
     const sel = document.getElementById(sizeSelectId);
     if (sel && sel.value) size = sel.value;
+  }
+  let color = null;
+  if (colorSelectId) {
+    const sel = document.getElementById(colorSelectId);
+    if (sel && sel.value) color = sel.value;
   }
   if (md_needsSize(product) && !size) {
     md_toast("Please choose a size first");
@@ -81,12 +99,12 @@ function md_addToCartFromCard(product, sizeSelectId, qtyInputId) {
     if (input) qty = parseInt(input.value, 10) || 1;
   }
   qty = Math.min(Math.max(1, qty), maxStock);
-  md_addToCart(product, qty, size);
+  md_addToCart(product, qty, size, color);
 }
 
-function md_updateQty(id, delta, size = null) {
+function md_updateQty(id, delta, size = null, color = null) {
   const cart = md_getCart();
-  const item = cart.find((i) => i.id === id && (i.size || null) === (size || null));
+  const item = cart.find((i) => i.id === id && (i.size || null) === (size || null) && (i.color || null) === (color || null));
   if (!item) return;
   if (delta > 0 && typeof MD_PRODUCTS_CACHE !== "undefined") {
     const product = MD_PRODUCTS_CACHE.find((p) => p.id === id);
@@ -103,8 +121,8 @@ function md_updateQty(id, delta, size = null) {
   md_saveCart(filtered);
 }
 
-function md_removeFromCart(id, size = null) {
-  md_saveCart(md_getCart().filter((i) => !(i.id === id && (i.size || null) === (size || null))));
+function md_removeFromCart(id, size = null, color = null) {
+  md_saveCart(md_getCart().filter((i) => !(i.id === id && (i.size || null) === (size || null) && (i.color || null) === (color || null))));
 }
 
 function md_clearCart() {
@@ -132,11 +150,15 @@ function md_renderCart() {
             i.image_url ? md_zoomableImg(i.image_url, i.name) : ""
           }</div>
           <div class="cinfo">
-            <h6>${i.name}${i.size ? ` <span style="opacity:.6;font-weight:400;">— Size ${i.size}</span>` : ""}</h6>
+            <h6>${i.name}${
+              i.size || i.color
+                ? ` <span style="opacity:.6;font-weight:400;">— ${[i.size ? `Size ${i.size}` : null, i.color].filter(Boolean).join(", ")}</span>`
+                : ""
+            }</h6>
             <div class="qty-ctl">
-              <button onclick="md_updateQty('${i.id}',-1,${i.size ? `'${i.size}'` : "null"})">−</button>
+              <button onclick="md_updateQty('${i.id}',-1,${i.size ? `'${i.size}'` : "null"},${i.color ? `'${i.color}'` : "null"})">−</button>
               <span>${i.qty}</span>
-              <button onclick="md_updateQty('${i.id}',1,${i.size ? `'${i.size}'` : "null"})">+</button>
+              <button onclick="md_updateQty('${i.id}',1,${i.size ? `'${i.size}'` : "null"},${i.color ? `'${i.color}'` : "null"})">+</button>
               <span style="margin-left:auto;font-family:var(--mono);">₱${(i.price * i.qty).toFixed(2)}</span>
             </div>
           </div>
