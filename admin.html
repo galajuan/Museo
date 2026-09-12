@@ -34,6 +34,7 @@
       <button class="admin-tab active" data-panel="panelProducts">Products</button>
       <button class="admin-tab" data-panel="panelEvents">Events</button>
       <button class="admin-tab" data-panel="panelOrders">Orders</button>
+      <button class="admin-tab" data-panel="panelAccounts">Accounts</button>
       <button class="btn-sm-outline" id="logoutBtn" style="margin-left:auto;">Log out</button>
     </div>
 
@@ -133,7 +134,10 @@
               </select>
             </div>
             <div class="field"><label>Date</label><input type="date" id="eDate" required></div>
-            <div class="field"><label>Time (optional)</label><input type="text" id="eTime" placeholder="e.g. 2:00 PM – 5:00 PM"></div>
+            <div class="field-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="field"><label>Start time (optional)</label><input type="time" id="eTimeStart"></div>
+              <div class="field"><label>End time (optional)</label><input type="time" id="eTimeEnd"></div>
+            </div>
             <div class="field"><label>Image URL</label><input type="text" id="eImage" placeholder="https://..."></div>
             <div class="field"><label>Description</label><textarea id="eDesc" rows="3"></textarea></div>
             <div style="display:flex;gap:10px;">
@@ -162,6 +166,18 @@
         <table>
           <thead><tr><th></th><th>Order No.</th><th>Customer</th><th>Fulfillment</th><th>Payment</th><th>Total</th><th>Status</th><th>Receipt</th></tr></thead>
           <tbody id="ordersTableBody"><tr><td colspan="8">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ================= ACCOUNTS ================= -->
+    <div class="admin-panel" id="panelAccounts">
+      <h3 style="font-size:1.15rem;">All accounts <span class="live-badge"><span class="live-dot"></span>Live</span></h3>
+      <p style="opacity:.7;font-size:.9rem;margin-bottom:16px;">Everyone who has signed up. "Verified" means they've confirmed their email — unverified accounts can't log in yet.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Status</th><th>Role</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody id="accountsTableBody"><tr><td colspan="7">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
