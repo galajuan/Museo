@@ -33,6 +33,7 @@ async function md_initAdmin() {
   md_initAdminProductFilters();
   md_loadAdminEvents();
   md_loadAdminOrders();
+  md_loadAdminAccounts();
   md_subscribeAdminRealtime();
 }
 
@@ -63,6 +64,20 @@ function md_subscribeAdminRealtime() {
       // Order rows can change shape (new order, status update); simplest and
       // safest is to refetch with the order_items join so totals stay correct.
       md_loadAdminOrders();
+    })
+    .subscribe();
+
+  supabase
+    .channel("admin-accounts-live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, (payload) => {
+      if (payload.eventType === "DELETE") {
+        MD_ADMIN_ACCOUNTS_CACHE = MD_ADMIN_ACCOUNTS_CACHE.filter((a) => a.id !== payload.old.id);
+      } else {
+        const idx = MD_ADMIN_ACCOUNTS_CACHE.findIndex((a) => a.id === payload.new.id);
+        if (idx >= 0) MD_ADMIN_ACCOUNTS_CACHE[idx] = { ...MD_ADMIN_ACCOUNTS_CACHE[idx], ...payload.new };
+        else MD_ADMIN_ACCOUNTS_CACHE.unshift(payload.new);
+      }
+      md_renderAdminAccounts();
     })
     .subscribe();
 }
@@ -347,13 +362,41 @@ async function md_loadAdminEvents() {
     .join("");
 }
 
+function md_formatTime12h(hhmm) {
+  if (!hhmm) return "";
+  const [h, m] = hhmm.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+// Best-effort: turn an old free-typed time string like "2:00 PM – 5:00 PM"
+// back into 24h HH:MM values so the pickers can be pre-filled when editing.
+function md_parseTimeRangeFor24h(str) {
+  if (!str) return { start: "", end: "" };
+  const parts = str.split(/[–\-]/).map((s) => s.trim());
+  const to24 = (t) => {
+    const m = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (!m) return "";
+    let h = Number(m[1]);
+    const min = m[2];
+    const ap = (m[3] || "").toUpperCase();
+    if (ap === "PM" && h !== 12) h += 12;
+    if (ap === "AM" && h === 12) h = 0;
+    return `${String(h).padStart(2, "0")}:${min}`;
+  };
+  return { start: to24(parts[0] || ""), end: to24(parts[1] || "") };
+}
+
 function md_editEvent(ev) {
   MD_EDITING_EVENT_ID = ev.id;
   document.getElementById("eventFormTitle").textContent = "Edit event";
   document.getElementById("eTitle").value = ev.title;
   document.getElementById("eMuseum").value = ev.museum_id || "";
   document.getElementById("eDate").value = ev.event_date;
-  document.getElementById("eTime").value = ev.event_time || "";
+  const parsed = md_parseTimeRangeFor24h(ev.event_time || "");
+  document.getElementById("eTimeStart").value = parsed.start;
+  document.getElementById("eTimeEnd").value = parsed.end;
   document.getElementById("eImage").value = ev.image_url || "";
   document.getElementById("eDesc").value = ev.description || "";
   window.scrollTo({ top: document.getElementById("eventForm").offsetTop - 100, behavior: "smooth" });
@@ -367,11 +410,15 @@ function md_resetEventForm() {
 
 async function md_saveEvent(e) {
   e.preventDefault();
+  const start = md_formatTime12h(document.getElementById("eTimeStart").value);
+  const end = md_formatTime12h(document.getElementById("eTimeEnd").value);
+  const event_time = start && end ? `${start} – ${end}` : start || end || "";
+
   const payload = {
     title: document.getElementById("eTitle").value.trim(),
     museum_id: document.getElementById("eMuseum").value || null,
     event_date: document.getElementById("eDate").value,
-    event_time: document.getElementById("eTime").value.trim(),
+    event_time,
     image_url: document.getElementById("eImage").value.trim(),
     description: document.getElementById("eDesc").value.trim(),
   };
@@ -433,7 +480,7 @@ function md_renderAdminOrders() {
       const items = o.order_items || [];
       return `
     <tr class="order-row-toggle" onclick="md_toggleOrderDetails('${o.id}')">
-      <td>▸</td>
+      <td class="order-toggle-arrow" id="arrow-${o.id}">▸</td>
       <td>${o.order_no}</td>
       <td>${o.guest_name}<br><span style="opacity:.6;font-size:.78rem;">${o.guest_email}</span></td>
       <td>${o.fulfillment === "online" ? "Delivery" : "Pickup"}</td>
@@ -474,8 +521,11 @@ function md_renderAdminOrders() {
 
 function md_toggleOrderDetails(id) {
   const row = document.getElementById(`orderDetails-${id}`);
+  const arrow = document.getElementById(`arrow-${id}`);
   if (!row) return;
-  row.style.display = row.style.display === "none" ? "table-row" : "none";
+  const isOpen = row.style.display !== "none";
+  row.style.display = isOpen ? "none" : "table-row";
+  if (arrow) arrow.textContent = isOpen ? "▸" : "▾";
 }
 
 async function md_updateOrderStatus(id, status) {
@@ -505,3 +555,65 @@ async function md_updateOrderStatus(id, status) {
 }
 
 document.addEventListener("DOMContentLoaded", md_initAdmin);
+
+/* ---------------- Accounts ----------------
+   Lists everyone who has signed up, with their email-verification
+   status and role. Verified status is synced from auth.users into
+   profiles.email_verified by a database trigger — see
+   sql/003_accounts.sql — because the browser can't read auth.users
+   directly. */
+let MD_ADMIN_ACCOUNTS_CACHE = [];
+
+async function md_loadAdminAccounts() {
+  const tbody = document.getElementById("accountsTableBody");
+  if (!tbody) return;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="7">Couldn't load accounts: ${error.message}</td></tr>`;
+    console.error(error);
+    return;
+  }
+  MD_ADMIN_ACCOUNTS_CACHE = data || [];
+  md_renderAdminAccounts();
+}
+
+function md_renderAdminAccounts() {
+  const tbody = document.getElementById("accountsTableBody");
+  if (!tbody) return;
+  if (MD_ADMIN_ACCOUNTS_CACHE.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7">No accounts yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = MD_ADMIN_ACCOUNTS_CACHE.map((a) => {
+    const isSelf = MD_ADMIN_PROFILE && a.id === MD_ADMIN_PROFILE.id;
+    return `
+    <tr>
+      <td>${a.full_name || "—"}${isSelf ? ` <span style="opacity:.5;font-size:.75rem;">(you)</span>` : ""}</td>
+      <td>${a.email}</td>
+      <td>${a.phone || "—"}</td>
+      <td><span class="acct-badge ${a.email_verified ? "verified" : "pending"}">${a.email_verified ? "Verified" : "Pending"}</span></td>
+      <td><span class="acct-badge ${a.role === "admin" ? "admin" : "customer"}">${a.role}</span></td>
+      <td style="opacity:.75;font-size:.85rem;">${md_formatDate ? md_formatDate(a.created_at) : new Date(a.created_at).toLocaleDateString()}</td>
+      <td>
+        ${
+          isSelf
+            ? `<span style="opacity:.5;font-size:.8rem;">—</span>`
+            : `<button class="btn-sm-outline" onclick="md_toggleAccountRole('${a.id}', '${a.role === "admin" ? "customer" : "admin"}')">${a.role === "admin" ? "Make customer" : "Make admin"}</button>`
+        }
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+async function md_toggleAccountRole(id, newRole) {
+  if (!confirm(`Change this account's role to "${newRole}"?`)) return;
+  const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", id);
+  if (error) {
+    alert("Couldn't update role: " + error.message);
+    return;
+  }
+  md_loadAdminAccounts();
+}
