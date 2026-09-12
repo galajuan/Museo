@@ -29,11 +29,22 @@ async function md_initAdmin() {
   document.getElementById("pImageFile").addEventListener("change", md_previewProductImage);
   document.getElementById("pHasSizes").addEventListener("change", md_toggleSizeStockFields);
 
+  // Delegated so it survives every products-table re-render; the button
+  // only carries data-product-id (never raw product text), so a product
+  // name/description containing an apostrophe can't break it.
+  document.getElementById("productsTableBody")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".js-edit-product");
+    if (!btn) return;
+    const product = MD_ADMIN_PRODUCTS_CACHE.find((p) => String(p.id) === btn.dataset.productId);
+    if (product) md_editProduct(product);
+  });
+
   md_loadAdminProducts();
   md_initAdminProductFilters();
   md_loadAdminEvents();
   md_loadAdminOrders();
   md_loadAdminAccounts();
+  md_initAdminAccountsDelegation();
   md_subscribeAdminRealtime();
 }
 
@@ -121,7 +132,7 @@ function md_renderAdminProducts() {
       <td>${md_stockCellHtml(p)}</td>
       <td>${p.is_active ? "Active" : "Hidden"}</td>
       <td>
-        <button class="btn-sm-outline" onclick='md_editProduct(${JSON.stringify(p)})'>Edit</button>
+        <button class="btn-sm-outline js-edit-product" data-product-id="${p.id}">Edit</button>
         <button class="btn-sm-outline" onclick="md_deleteProduct('${p.id}')">Remove</button>
       </td>
     </tr>`;
@@ -526,7 +537,7 @@ function md_renderAdminOrders() {
     <tr class="order-details-row" id="orderDetails-${o.id}" style="display:none;">
       <td colspan="8">
         <div class="order-details-wrap">
-          <div class="order-meta-line">${items.length} item${items.length === 1 ? "" : "s"} · ${o.fulfillment === "online" ? `Delivering to: ${o.delivery_address || "—"}` : "Walk-in pickup"} · Placed ${md_formatDate ? md_formatDate(o.created_at) : new Date(o.created_at).toLocaleDateString()}</div>
+          <div class="order-meta-line">${items.length} item${items.length === 1 ? "" : "s"} · ${o.fulfillment === "online" ? `Delivering to: ${o.delivery_address || "—"}` : "Walk-in pickup"} · Placed ${md_formatTimestamp(o.created_at)}</div>
           <table>
             <thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Line total</th></tr></thead>
             <tbody>
@@ -584,6 +595,19 @@ async function md_updateOrderStatus(id, status) {
   md_loadAdminOrders();
 }
 
+/** Formats a real ISO timestamp column (e.g. Supabase's created_at) for
+    display — Sep 12, 2026. This is deliberately separate from events.js's
+    md_formatDate(), which is only for plain "YYYY-MM-DD" date columns and
+    appends "T00:00:00" before parsing; doing that to an already-complete
+    timestamp (which has its own time/timezone) corrupts it into an
+    invalid date, which is why "Joined" and order dates showed nothing. */
+function md_formatTimestamp(isoString) {
+  if (!isoString) return "—";
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+}
+
 document.addEventListener("DOMContentLoaded", md_initAdmin);
 
 /* ---------------- Accounts ----------------
@@ -626,16 +650,37 @@ function md_renderAdminAccounts() {
       <td>${a.phone || "—"}</td>
       <td><span class="acct-badge ${a.email_verified ? "verified" : "pending"}">${a.email_verified ? "Verified" : "Pending"}</span></td>
       <td><span class="acct-badge ${a.role === "admin" ? "admin" : "customer"}">${a.role}</span></td>
-      <td style="opacity:.75;font-size:.85rem;">${md_formatDate ? md_formatDate(a.created_at) : new Date(a.created_at).toLocaleDateString()}</td>
+      <td style="opacity:.75;font-size:.85rem;">${md_formatTimestamp(a.created_at)}</td>
       <td>
         ${
           isSelf
             ? `<span style="opacity:.5;font-size:.8rem;">—</span>`
-            : `<button class="btn-sm-outline" onclick="md_toggleAccountRole('${a.id}', '${a.role === "admin" ? "customer" : "admin"}')">${a.role === "admin" ? "Make customer" : "Make admin"}</button>`
+            : `<button class="btn-sm-outline js-toggle-role" data-account-id="${a.id}" data-new-role="${a.role === "admin" ? "customer" : "admin"}">${a.role === "admin" ? "Make customer" : "Make admin"}</button>
+               <button class="btn-sm-outline js-delete-account" data-account-id="${a.id}" style="margin-left:6px;color:#b42318;border-color:#b42318;">Delete</button>`
         }
       </td>
     </tr>`;
   }).join("");
+}
+
+/* Delegated (same reasoning as the shop's Add-to-basket fix): buttons only
+   carry data-account-id/data-new-role, an id and a fixed "admin"/"customer"
+   string — never a person's name or email — so nothing in someone's profile
+   text can ever break these buttons. */
+function md_initAdminAccountsDelegation() {
+  const tbody = document.getElementById("accountsTableBody");
+  if (!tbody) return;
+  tbody.addEventListener("click", (e) => {
+    const roleBtn = e.target.closest(".js-toggle-role");
+    if (roleBtn) {
+      md_toggleAccountRole(roleBtn.dataset.accountId, roleBtn.dataset.newRole);
+      return;
+    }
+    const delBtn = e.target.closest(".js-delete-account");
+    if (delBtn) {
+      md_deleteAccount(delBtn.dataset.accountId);
+    }
+  });
 }
 
 async function md_toggleAccountRole(id, newRole) {
@@ -643,6 +688,26 @@ async function md_toggleAccountRole(id, newRole) {
   const { error } = await supabase.from("profiles").update({ role: newRole }).eq("id", id);
   if (error) {
     alert("Couldn't update role: " + error.message);
+    return;
+  }
+  md_loadAdminAccounts();
+}
+
+/* Deletes the person's profile row only. Their Supabase Auth login isn't
+   removed by this — the browser can't do that safely (it would need the
+   service-role key, which must never ship to client-side code). Fully
+   deleting the login too requires a secure server-side call (e.g. a
+   Supabase Edge Function using supabase.auth.admin.deleteUser). */
+async function md_deleteAccount(id) {
+  if (
+    !confirm(
+      "Delete this account's profile record? This can't be undone.\n\nNote: this removes them from this list, but does NOT delete their login from Supabase Auth — that needs to be done separately from the Supabase dashboard (or a secure server-side function)."
+    )
+  )
+    return;
+  const { error } = await supabase.from("profiles").delete().eq("id", id);
+  if (error) {
+    alert("Couldn't delete account: " + error.message);
     return;
   }
   md_loadAdminAccounts();
