@@ -4,10 +4,22 @@
    ========================================================= */
 const MD_CART_KEY = "museodavao_cart_v1";
 
-/* T-shirts (currently National Museum merch) sell in sizes.
-   Anything else ignores size entirely. */
+/* Products flagged "has_sizes" in the admin dashboard (e.g. T-shirts) sell
+   in sizes, each with its own stock count. Falls back to the old
+   name-matching guess for products saved before that flag existed. */
 function md_needsSize(product) {
-  return product && product.museum_id === "national" && /shirt/i.test(product.name || "");
+  if (!product) return false;
+  if (typeof product.has_sizes === "boolean") return product.has_sizes;
+  return product.museum_id === "national" && /shirt/i.test(product.name || "");
+}
+
+/** How many units of this product (in this size, if sized) are left. */
+function md_stockFor(product, size = null) {
+  if (!product) return 0;
+  if (md_needsSize(product) && product.size_stock && size) {
+    return Number(product.size_stock[size]) || 0;
+  }
+  return Number(product.stock) || 0;
 }
 
 function md_getCart() {
@@ -57,12 +69,17 @@ function md_addToCartFromCard(product, sizeSelectId, qtyInputId) {
     md_toast("Please choose a size first");
     return;
   }
+  const maxStock = Math.max(0, md_stockFor(product, size));
+  if (maxStock <= 0) {
+    md_toast(size ? `Size ${size} just sold out` : "That item just sold out");
+    md_renderProducts && md_renderProducts();
+    return;
+  }
   let qty = 1;
   if (qtyInputId) {
     const input = document.getElementById(qtyInputId);
     if (input) qty = parseInt(input.value, 10) || 1;
   }
-  const maxStock = Number(product.stock) || 1;
   qty = Math.min(Math.max(1, qty), maxStock);
   md_addToCart(product, qty, size);
 }
@@ -71,6 +88,16 @@ function md_updateQty(id, delta, size = null) {
   const cart = md_getCart();
   const item = cart.find((i) => i.id === id && (i.size || null) === (size || null));
   if (!item) return;
+  if (delta > 0 && typeof MD_PRODUCTS_CACHE !== "undefined") {
+    const product = MD_PRODUCTS_CACHE.find((p) => p.id === id);
+    if (product) {
+      const max = md_stockFor(product, size);
+      if (item.qty >= max) {
+        md_toast(`Only ${max} left${size ? ` in size ${size}` : ""}`);
+        return;
+      }
+    }
+  }
   item.qty += delta;
   const filtered = item.qty <= 0 ? cart.filter((i) => i !== item) : cart;
   md_saveCart(filtered);
