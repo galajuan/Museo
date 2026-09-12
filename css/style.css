@@ -416,8 +416,22 @@ th{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:u
 
 /* ---------- Admin: order details expand row ---------- */
 .order-row-toggle{cursor:pointer;}
+.order-row-toggle:hover td{background:var(--parchment,#f7f4ec);}
+.order-toggle-arrow{font-size:.95rem;color:var(--brass);width:20px;}
 .order-details-row td{background:var(--parchment,#f7f4ec);padding:0;border-bottom:1px solid var(--line);}
 .order-details-wrap{padding:14px 18px;}
 .order-details-wrap table{font-size:.82rem;}
 .order-details-wrap th,.order-details-wrap td{padding:6px 8px;}
+
+/* ---------- Admin: accounts ---------- */
+.acct-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:20px;font-size:.72rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.04em;}
+.acct-badge::before{content:"";width:6px;height:6px;border-radius:50%;}
+.acct-badge.verified{background:#E6F5EE;color:var(--green);}
+.acct-badge.verified::before{background:var(--green);}
+.acct-badge.pending{background:#FBE7EB;color:var(--rust);}
+.acct-badge.pending::before{background:var(--rust);}
+.acct-badge.admin{background:#F3E8D6;color:var(--brass);}
+.acct-badge.admin::before{background:var(--brass);}
+.acct-badge.customer{background:var(--parchment,#f7f4ec);color:var(--ink-soft,#2A2A30);}
+.acct-badge.customer::before{background:var(--ink-soft,#2A2A30);}
 .order-meta-line{font-family:var(--mono);font-size:.75rem;opacity:.7;margin-bottom:8px;}
