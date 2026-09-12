@@ -68,12 +68,11 @@
 <script src="js/layout.js"></script>
 <script src="js/events.js"></script>
 <script>
-  document.addEventListener("DOMContentLoaded", async () => {
+  let MD_WING_PRODUCTS = [];
+
+  function md_renderWingGrid() {
     const grid = document.getElementById("wingProductGrid");
-    if (typeof CONFIG_OK !== "undefined" && !CONFIG_OK) { grid.innerHTML = `<p class="empty-note">Connect Supabase to load this wing's shop items.</p>`; return; }
-    const { data, error } = await supabase.from("products").select("*").eq("museum_id","dbone").eq("is_active", true);
-    if (error || !data || data.length === 0) { grid.innerHTML = `<p class="empty-note">No items tagged to this wing yet.</p>`; return; }
-    grid.innerHTML = data.map(p => {
+    grid.innerHTML = MD_WING_PRODUCTS.map(p => {
       const sizeId = `size-${p.id}`;
       const qtyId = `qty-${p.id}`;
       const showSize = typeof md_needsSize === "function" && md_needsSize(p) && p.for_sale !== false;
@@ -111,11 +110,42 @@
         </div>
       </div>`;
     }).join("");
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const grid = document.getElementById("wingProductGrid");
+    if (typeof CONFIG_OK !== "undefined" && !CONFIG_OK) { grid.innerHTML = `<p class="empty-note">Connect Supabase to load this wing's shop items.</p>`; return; }
+    const { data, error } = await supabase.from("products").select("*").eq("museum_id","dbone").eq("is_active", true);
+    if (error || !data || data.length === 0) { grid.innerHTML = `<p class="empty-note">No items tagged to this wing yet.</p>`; return; }
+    MD_WING_PRODUCTS = data;
+    md_renderWingGrid();
+    md_subscribeWingRealtime("dbone");
   });
+
+  /* ---------------- Real-time stock sync ----------------
+     Mirrors shop.js's live sync so this wing's stock numbers and
+     Add-to-basket buttons stay accurate without a manual refresh,
+     whether the change came from the admin dashboard or another
+     shopper checking out right now. */
+  let MD_WING_REALTIME_CHANNEL = null;
+  function md_subscribeWingRealtime(museumId) {
+    if (MD_WING_REALTIME_CHANNEL || typeof supabase === "undefined") return;
+    MD_WING_REALTIME_CHANNEL = supabase
+      .channel(`wing-products-live-${museumId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, (payload) => {
+        if (payload.eventType === "DELETE") {
+          MD_WING_PRODUCTS = MD_WING_PRODUCTS.filter((p) => p.id !== payload.old.id);
+        } else {
+          const updated = payload.new;
+          if (updated.museum_id !== museumId) return;
+          const idx = MD_WING_PRODUCTS.findIndex((p) => p.id === updated.id);
+          if (idx >= 0) MD_WING_PRODUCTS[idx] = { ...MD_WING_PRODUCTS[idx], ...updated };
+          else if (updated.is_active) MD_WING_PRODUCTS.push(updated);
+        }
+        md_renderWingGrid();
+      })
+      .subscribe();
+  }
 </script>
 </body>
 </html>
-
-
-
-
