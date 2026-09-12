@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     md_renderReceipt(
       saved.order,
       (saved.items || []).map((i) => ({
-        name: i.size ? `${i.name} (Size ${i.size})` : i.name,
+        name: typeof md_cartItemLabel === "function" ? md_cartItemLabel(i) : i.name,
         price: i.price,
         qty: i.qty,
       }))
