@@ -365,7 +365,8 @@ section{padding:76px 0;}
 /* ---------- Utility ---------- */
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:40px;}
 @media (max-width:860px){.grid-2{grid-template-columns:1fr;}}
-.shop-search{position:relative;max-width:420px;margin-bottom:20px;}
+.shop-search{position:relative;max-width:420px;margin-bottom:8px;}
+.live-badge{display:inline-flex;margin:0 0 20px 2px;}
 .shop-search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:.85rem;opacity:.5;pointer-events:none;}
 .shop-search input{
   width:100%;padding:12px 14px 12px 38px;border:1px solid var(--line);background:var(--paper);
@@ -391,3 +392,32 @@ th{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:u
 .status-ready{background:#e4d9f3;color:#5a2f9c;}
 .status-completed{background:#d6d6d6;color:#333;}
 .status-cancelled{background:#f3d9d9;color:#8a1f1f;}
+
+/* ---------- Per-size stock (shop + admin) ---------- */
+.size-select option:disabled{color:#b3b3b3;}
+.size-stock-hint{font-family:var(--mono);font-size:.66rem;opacity:.6;margin-top:4px;}
+.size-stock-hint.low{color:#8a1f1f;opacity:.85;}
+.stock-note.low{color:#8a6212;}
+.stock-note.out{color:#8a1f1f;}
+.size-stock-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px;}
+.size-stock-grid .ss-field{display:flex;flex-direction:column;gap:4px;}
+.size-stock-grid label{font-family:var(--mono);font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;opacity:.65;}
+.size-stock-grid input{padding:8px;border:1px solid var(--line);background:var(--paper);font-family:var(--body);border-radius:var(--radius);width:100%;}
+.size-stock-total{font-family:var(--mono);font-size:.75rem;opacity:.7;margin-top:8px;}
+.stock-cell-sizes{font-family:var(--mono);font-size:.72rem;opacity:.75;line-height:1.5;}
+.stock-cell-total{font-weight:600;}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#2e9e4f;margin-right:6px;box-shadow:0 0 0 rgba(46,158,79,.5);animation:live-pulse 1.8s infinite;}
+@keyframes live-pulse{
+  0%{box-shadow:0 0 0 0 rgba(46,158,79,.45);}
+  70%{box-shadow:0 0 0 7px rgba(46,158,79,0);}
+  100%{box-shadow:0 0 0 0 rgba(46,158,79,0);}
+}
+.live-badge{font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;text-transform:uppercase;opacity:.7;display:inline-flex;align-items:center;margin-left:12px;}
+
+/* ---------- Admin: order details expand row ---------- */
+.order-row-toggle{cursor:pointer;}
+.order-details-row td{background:var(--parchment,#f7f4ec);padding:0;border-bottom:1px solid var(--line);}
+.order-details-wrap{padding:14px 18px;}
+.order-details-wrap table{font-size:.82rem;}
+.order-details-wrap th,.order-details-wrap td{padding:6px 8px;}
+.order-meta-line{font-family:var(--mono);font-size:.75rem;opacity:.7;margin-bottom:8px;}
