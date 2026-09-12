@@ -100,13 +100,24 @@ function md_renderProducts() {
 
 const MD_SIZE_ORDER = ["S", "M", "L", "XL"];
 
+/** Parses the comma-separated available_colors column into a clean array. */
+function md_parseColors(raw) {
+  return (raw || "")
+    .split(",")
+    .map((c) => c.trim())
+    .filter(Boolean);
+}
+
 function md_productCardHtml(p) {
   const sizeId = `size-${p.id}`;
+  const colorId = `color-${p.id}`;
   const qtyId = `qty-${p.id}`;
   const showSize = typeof md_needsSize === "function" && md_needsSize(p) && p.for_sale !== false;
   const isCollection = p.for_sale === false;
   const sizeStock = p.size_stock || {};
   const totalStock = Number(p.stock) || 0;
+  const colorOptions = md_parseColors(p.available_colors);
+  const showColor = colorOptions.length > 0 && !isCollection;
 
   // For sized items, the "current" size defaults to whichever the shopper
   // already had selected, or the first size that still has stock.
@@ -116,6 +127,11 @@ function md_productCardHtml(p) {
       ? prevSel
       : MD_SIZE_ORDER.find((s) => (Number(sizeStock[s]) || 0) > 0) || MD_SIZE_ORDER[0];
   const stockForSelectedSize = showSize ? Number(sizeStock[defaultSize]) || 0 : totalStock;
+
+  // Same idea for color — keep whatever the shopper had picked if it's
+  // still a valid option for this product.
+  const prevColorSel = document.getElementById(colorId)?.value;
+  const defaultColor = prevColorSel && colorOptions.includes(prevColorSel) ? prevColorSel : colorOptions[0];
 
   const stockNoteClass = totalStock <= 0 ? "out" : totalStock <= 5 ? "low" : "";
   const stockNoteText = isCollection
@@ -132,6 +148,10 @@ function md_productCardHtml(p) {
       }).join("")
     : "";
 
+  const colorSelectOptions = showColor
+    ? colorOptions.map((c) => `<option value="${c}" ${c === defaultColor ? "selected" : ""}>${c}</option>`).join("")
+    : "";
+
   const disableAdd = isCollection || totalStock <= 0 || (showSize && stockForSelectedSize <= 0);
 
   return `
@@ -146,6 +166,16 @@ function md_productCardHtml(p) {
         <span class="product-category ${isCollection ? "collection" : "merch"}">${isCollection ? "Collection" : "Merchandise"}</span>
         <h4>${p.name}</h4>
         <p class="product-desc">${p.description || ""}</p>
+        ${
+          !isCollection
+            ? showColor
+              ? `<div class="size-field"><label for="${colorId}">Color</label>
+                  <select id="${colorId}" class="size-select" onchange="md_onSizeChange('${p.id}')">
+                    ${colorSelectOptions}
+                  </select>`
+              : `<div class="product-color-row">Color: <span style="opacity:.55;">No available color</span></div>`
+            : ""
+        }
         ${
           showSize
             ? `<div class="size-field"><label for="${sizeId}">Size</label>
@@ -165,7 +195,7 @@ function md_productCardHtml(p) {
         ${
           p.for_sale === false
             ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
-            : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${disableAdd ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${stockForSelectedSize > 0 ? `"${qtyId}"` : "null"})'>
+            : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${disableAdd ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${stockForSelectedSize > 0 ? `"${qtyId}"` : "null"}, ${showColor ? `"${colorId}"` : "null"})'>
           ${disableAdd ? "Out of stock" : "Add to basket"}
         </button>`
         }
@@ -231,7 +261,7 @@ function md_renderCheckoutSummary() {
   }
   document.getElementById("placeOrderBtn")?.removeAttribute("disabled");
   wrap.innerHTML =
-    cart.map((i) => `<div class="cart-total-row"><span>${i.name}${i.size ? ` (Size ${i.size})` : ""} × ${i.qty}</span><span>₱${(i.price * i.qty).toFixed(2)}</span></div>`).join("") +
+    cart.map((i) => `<div class="cart-total-row"><span>${md_cartItemLabel(i)} × ${i.qty}</span><span>₱${(i.price * i.qty).toFixed(2)}</span></div>`).join("") +
     `<div class="cart-total-row" style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px;font-weight:600;"><span>Total</span><span>₱${md_cartSubtotal().toFixed(2)}</span></div>`;
 }
 
@@ -310,7 +340,7 @@ async function md_placeOrder(e) {
       for (const r of reserved) {
         await supabase.rpc("increment_product_stock", { p_product_id: r.id, p_qty: r.qty, p_size: r.size || null });
       }
-      errEl.textContent = `Sorry — "${item.name}"${item.size ? ` (Size ${item.size})` : ""} ${stockErr.message.includes("Only") ? stockErr.message.toLowerCase() : "just sold out"}. Please update your basket and try again.`;
+      errEl.textContent = `Sorry — "${md_cartItemLabel(item)}" ${stockErr.message.includes("Only") ? stockErr.message.toLowerCase() : "just sold out"}. Please update your basket and try again.`;
       errEl.style.display = "block";
       btn.disabled = false;
       btn.textContent = "Place order";
@@ -363,7 +393,7 @@ async function md_placeOrder(e) {
   const items = cart.map((i) => ({
     order_id: order.id,
     product_id: i.id,
-    product_name: i.size ? `${i.name} (Size ${i.size})` : i.name,
+    product_name: md_cartItemLabel(i),
     unit_price: i.price,
     quantity: i.qty,
     line_total: i.price * i.qty,
