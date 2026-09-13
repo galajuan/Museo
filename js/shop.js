@@ -164,16 +164,14 @@ function md_productCardHtml(p) {
       <div class="product-body">
         <span class="product-museum">${MD_MUSEUM_LABEL[p.museum_id] || "MuseoDavao"}</span>
         <span class="product-category ${isCollection ? "collection" : "merch"}">${isCollection ? "Collection" : "Merchandise"}</span>
-        <h4>${p.name}</h4>
-        <p class="product-desc">${p.description || ""}</p>
+        <h4>${md_escapeHtml(p.name)}</h4>
+        <p class="product-desc">${md_escapeHtml(p.description || "")}</p>
         ${
-          !isCollection
-            ? showColor
-              ? `<div class="size-field"><label for="${colorId}">Color</label>
-                  <select id="${colorId}" class="size-select" onchange="md_onSizeChange('${p.id}')">
-                    ${colorSelectOptions}
-                  </select>`
-              : `<div class="product-color-row">Color: <span style="opacity:.55;">No available color</span></div>`
+          showColor
+            ? `<div class="size-field"><label for="${colorId}">Color</label>
+                <select id="${colorId}" class="size-select" onchange="md_onSizeChange('${p.id}')">
+                  ${colorSelectOptions}
+                </select></div>`
             : ""
         }
         ${
@@ -184,7 +182,7 @@ function md_productCardHtml(p) {
                 </select>
                 <div class="size-stock-hint ${stockForSelectedSize <= 3 && stockForSelectedSize > 0 ? "low" : ""}" id="sizehint-${p.id}">
                   ${stockForSelectedSize > 0 ? `${stockForSelectedSize} left in size ${defaultSize}` : "This size is sold out"}
-                </div>`
+                </div></div>`
             : ""
         }
         ${!isCollection && stockForSelectedSize > 0 ? md_qtyFieldHtml(qtyId, stockForSelectedSize, p.price) : ""}
@@ -195,7 +193,7 @@ function md_productCardHtml(p) {
         ${
           p.for_sale === false
             ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
-            : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${disableAdd ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${stockForSelectedSize > 0 ? `"${qtyId}"` : "null"}, ${showColor ? `"${colorId}"` : "null"})'>
+            : `<button class="btn-sm js-add-to-cart" data-product-id="${p.id}" style="width:100%;margin-top:6px;" ${disableAdd ? "disabled" : ""}>
           ${disableAdd ? "Out of stock" : "Add to basket"}
         </button>`
         }
@@ -211,6 +209,33 @@ function md_onSizeChange(productId) {
   const card = document.querySelector(`.product-card[data-product-id="${productId}"]`);
   if (!card) return;
   card.outerHTML = md_productCardHtml(p);
+}
+
+/* Delegated so it survives every grid re-render, and so a product name or
+   description containing an apostrophe or quote can never break the
+   button (previously the button embedded the whole product as JSON
+   inside an onclick='...' attribute, which broke — and corrupted the
+   rest of the grid's HTML — the moment any product had an apostrophe
+   in its name or description). The button only ever carries a plain
+   id in a data attribute now. */
+function md_initShopGridDelegation() {
+  const grid = document.getElementById("productGrid");
+  if (!grid) return;
+  grid.addEventListener("click", (e) => {
+    const btn = e.target.closest(".js-add-to-cart");
+    if (!btn) return;
+    const product = MD_PRODUCTS_CACHE.find((p) => String(p.id) === btn.dataset.productId);
+    if (!product) return;
+    const sizeSelectId = `size-${product.id}`;
+    const colorSelectId = `color-${product.id}`;
+    const qtyInputId = `qty-${product.id}`;
+    md_addToCartFromCard(
+      product,
+      document.getElementById(sizeSelectId) ? sizeSelectId : null,
+      document.getElementById(qtyInputId) ? qtyInputId : null,
+      document.getElementById(colorSelectId) ? colorSelectId : null
+    );
+  });
 }
 
 function md_initShopSearch() {
@@ -416,6 +441,7 @@ document.addEventListener("DOMContentLoaded", () => {
   md_initShopSearch();
   md_initShopFilters();
   md_initShopCategoryFilters();
+  md_initShopGridDelegation();
   const form = document.getElementById("checkoutForm");
   if (form) {
     form.addEventListener("submit", md_placeOrder);
