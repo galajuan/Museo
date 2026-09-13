@@ -6,6 +6,19 @@ let MD_ADMIN_PROFILE = null;
 let MD_EDITING_PRODUCT_ID = null;
 let MD_EDITING_EVENT_ID = null;
 
+/* admin.html doesn't load layout.js (no site header/footer/docent needed
+   here), so this table-safe escaper — used for any product/event text
+   rendered into the tables below — is defined locally instead of relying
+   on layout.js's copy. */
+function md_escapeHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 async function md_initAdmin() {
   MD_ADMIN_PROFILE = await md_requireAuth({ adminOnly: true });
   if (!MD_ADMIN_PROFILE) return;
@@ -37,6 +50,16 @@ async function md_initAdmin() {
     if (!btn) return;
     const product = MD_ADMIN_PRODUCTS_CACHE.find((p) => String(p.id) === btn.dataset.productId);
     if (product) md_editProduct(product);
+  });
+
+  // Same reasoning for events — a title/description with an apostrophe
+  // used to break this button entirely (and everything after it in the
+  // table) when it was built with onclick='md_editEvent(${JSON.stringify(ev)})'.
+  document.getElementById("eventsTableBody")?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".js-edit-event");
+    if (!btn) return;
+    const ev = MD_ADMIN_EVENTS_CACHE.find((ev) => String(ev.id) === btn.dataset.eventId);
+    if (ev) md_editEvent(ev);
   });
 
   md_loadAdminProducts();
@@ -124,7 +147,7 @@ function md_renderAdminProducts() {
       const isCollection = p.for_sale === false;
       return `
     <tr>
-      <td>${p.name}</td>
+      <td>${md_escapeHtml(p.name)}</td>
       <td>${MD_MUSEUM_LABEL[p.museum_id] || "—"}</td>
       <td><span class="product-category ${isCollection ? "collection" : "merch"}" style="font-size:.68rem;">${isCollection ? "Collection" : "Merchandise"}</span></td>
       <td>₱${Number(p.price).toFixed(2)}</td>
@@ -379,6 +402,8 @@ async function md_deleteProduct(id) {
 }
 
 /* ---------------- EVENTS ---------------- */
+let MD_ADMIN_EVENTS_CACHE = [];
+
 async function md_loadAdminEvents() {
   const tbody = document.getElementById("eventsTableBody");
   const { data, error } = await supabase.from("events").select("*").order("event_date", { ascending: false });
@@ -386,16 +411,17 @@ async function md_loadAdminEvents() {
     tbody.innerHTML = `<tr><td colspan="5">Error loading events.</td></tr>`;
     return;
   }
-  tbody.innerHTML = data
+  MD_ADMIN_EVENTS_CACHE = data || [];
+  tbody.innerHTML = MD_ADMIN_EVENTS_CACHE
     .map(
       (ev) => `
     <tr>
-      <td>${ev.title}</td>
+      <td>${md_escapeHtml(ev.title)}</td>
       <td>${MD_MUSEUM_LABEL[ev.museum_id] || "—"}</td>
       <td>${md_formatDate(ev.event_date)}</td>
       <td>${ev.event_time || "—"}</td>
       <td>
-        <button class="btn-sm-outline" onclick='md_editEvent(${JSON.stringify(ev)})'>Edit</button>
+        <button class="btn-sm-outline js-edit-event" data-event-id="${ev.id}">Edit</button>
         <button class="btn-sm-outline" onclick="md_deleteEvent('${ev.id}')">Remove</button>
       </td>
     </tr>`
