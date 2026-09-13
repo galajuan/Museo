@@ -68,63 +68,15 @@
 <script src="js/chatbot.js"></script>
 <script src="js/layout.js"></script>
 <script src="js/events.js"></script>
+<script src="js/product-card.js"></script>
 <script>
-  let MD_WING_PRODUCTS = [];
-
   function md_renderWingGrid() {
     const grid = document.getElementById("wingProductGrid");
-    grid.innerHTML = MD_WING_PRODUCTS.map(p => {
-      const sizeId = `size-${p.id}`;
-      const colorId = `color-${p.id}`;
-      const qtyId = `qty-${p.id}`;
-      const showSize = typeof md_needsSize === "function" && md_needsSize(p) && p.for_sale !== false;
-      const isCollection = p.for_sale === false;
-      const colorOptions = (p.available_colors || "").split(",").map(c => c.trim()).filter(Boolean);
-      const showColor = colorOptions.length > 0 && !isCollection;
-      return `
-      <div class="product-card">
-        <div class="product-media">${p.image_url ? `${md_zoomableImg(p.image_url, p.name)}<span class="zoom-hint">🔍</span>` : `<span class="ph">No image yet</span>`}</div>
-        <div class="product-body">
-          <span class="product-museum">Museo Dabawenyo</span>
-          <span class="product-category ${isCollection ? "collection" : "merch"}">${isCollection ? "Collection" : "Merchandise"}</span>
-          <h4>${p.name}</h4>
-          <p class="product-desc">${p.description || ""}</p>
-          ${
-            !isCollection
-              ? showColor
-                ? `<div class="size-field"><label for="${colorId}">Color</label>
-                    <select id="${colorId}" class="size-select">
-                      ${colorOptions.map(c => `<option value="${c}">${c}</option>`).join("")}
-                    </select>
-                  </div>`
-                : `<div class="product-color-row">Color: <span style="opacity:.55;">No available color</span></div>`
-              : ""
-          }
-          ${
-            showSize
-              ? `<div class="size-field"><label for="${sizeId}">Size</label>
-                  <select id="${sizeId}" class="size-select">
-                    <option value="S">S</option>
-                    <option value="M" selected>M</option>
-                    <option value="L">L</option>
-                    <option value="XL">XL</option>
-                  </select>
-                </div>`
-              : ""
-          }
-          ${!isCollection && p.stock > 0 ? md_qtyFieldHtml(qtyId, p.stock, p.price) : ""}
-          <div class="product-foot">
-            <span class="price">₱${Number(p.price).toFixed(2)}</span>
-            <span class="stock-note">${isCollection ? "Collection item" : p.stock > 0 ? p.stock + " in stock" : "Out of stock"}</span>
-          </div>
-          ${
-            p.for_sale === false
-              ? `<button class="btn-sm" style="width:100%;margin-top:6px;" disabled>Not for sale</button>`
-              : `<button class="btn-sm" style="width:100%;margin-top:6px;" ${p.stock <= 0 ? "disabled" : ""} onclick='md_addToCartFromCard(${JSON.stringify(p)}, ${showSize ? `"${sizeId}"` : "null"}, ${p.stock > 0 ? `"${qtyId}"` : "null"}, ${showColor ? `"${colorId}"` : "null"})'>${p.stock <= 0 ? "Out of stock" : "Add to basket"}</button>`
-          }
-        </div>
-      </div>`;
-    }).join("");
+    if (MD_PRODUCTS_CACHE.length === 0) {
+      grid.innerHTML = `<p class="empty-note">No items tagged to this wing yet.</p>`;
+      return;
+    }
+    grid.innerHTML = MD_PRODUCTS_CACHE.map((p) => md_productCardHtml(p)).join("");
   }
 
   document.addEventListener("DOMContentLoaded", async () => {
@@ -132,8 +84,9 @@
     if (typeof CONFIG_OK !== "undefined" && !CONFIG_OK) { grid.innerHTML = `<p class="empty-note">Connect Supabase to load this wing's shop items.</p>`; return; }
     const { data, error } = await supabase.from("products").select("*").eq("museum_id","dabawenyo").eq("is_active", true);
     if (error || !data || data.length === 0) { grid.innerHTML = `<p class="empty-note">No items tagged to this wing yet.</p>`; return; }
-    MD_WING_PRODUCTS = data;
+    MD_PRODUCTS_CACHE = data;
     md_renderWingGrid();
+    md_initGridDelegation("wingProductGrid");
     md_subscribeWingRealtime("dabawenyo");
   });
 
@@ -149,13 +102,13 @@
       .channel(`wing-products-live-${museumId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "products" }, (payload) => {
         if (payload.eventType === "DELETE") {
-          MD_WING_PRODUCTS = MD_WING_PRODUCTS.filter((p) => p.id !== payload.old.id);
+          MD_PRODUCTS_CACHE = MD_PRODUCTS_CACHE.filter((p) => p.id !== payload.old.id);
         } else {
           const updated = payload.new;
           if (updated.museum_id !== museumId) return;
-          const idx = MD_WING_PRODUCTS.findIndex((p) => p.id === updated.id);
-          if (idx >= 0) MD_WING_PRODUCTS[idx] = { ...MD_WING_PRODUCTS[idx], ...updated };
-          else if (updated.is_active) MD_WING_PRODUCTS.push(updated);
+          const idx = MD_PRODUCTS_CACHE.findIndex((p) => p.id === updated.id);
+          if (idx >= 0) MD_PRODUCTS_CACHE[idx] = { ...MD_PRODUCTS_CACHE[idx], ...updated };
+          else if (updated.is_active) MD_PRODUCTS_CACHE.push(updated);
         }
         md_renderWingGrid();
       })
