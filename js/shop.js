@@ -149,11 +149,15 @@ function md_productCardHtml(p) {
   const prevColorSel = document.getElementById(colorId)?.value;
   const defaultColor = prevColorSel && colorOptions.includes(prevColorSel) ? prevColorSel : colorOptions[0];
 
-  const stockNoteClass = totalStock <= 0 ? "out" : totalStock <= 5 ? "low" : "";
+  const stockNoteClass = stockForSelectedSize <= 0 ? "out" : stockForSelectedSize <= 5 ? "low" : "";
   const stockNoteText = isCollection
     ? "Collection item"
-    : totalStock > 0
-    ? `${totalStock} in stock`
+    : stockForSelectedSize > 0
+    ? showSize
+      ? `${stockForSelectedSize} in stock (size ${defaultSize})`
+      : `${stockForSelectedSize} in stock`
+    : showSize
+    ? `Size ${defaultSize} sold out`
     : "Out of stock";
 
   const sizeOptions = showSize
