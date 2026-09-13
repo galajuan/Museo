@@ -4,6 +4,7 @@
 let MD_PRODUCTS_CACHE = [];
 let MD_ACTIVE_FILTER = "all";
 let MD_ACTIVE_CATEGORY = "all";
+let MD_ACTIVE_SIZE = "all";
 let MD_SEARCH_QUERY = "";
 
 const MD_PAYMENT_INFO = {
@@ -78,6 +79,16 @@ function md_renderProducts() {
     items = items.filter((p) => p.for_sale === false);
   }
 
+  // "Size S/M/L/XL" filter: only show items that actually come in the
+  // chosen size AND still have stock in it — e.g. picking "Large" hides
+  // every shirt that's sold out in L, and hides non-sized items entirely
+  // since "large" doesn't apply to them.
+  if (MD_ACTIVE_SIZE !== "all") {
+    items = items.filter(
+      (p) => md_needsSize(p) && Number((p.size_stock || {})[MD_ACTIVE_SIZE]) > 0
+    );
+  }
+
   const q = MD_SEARCH_QUERY.trim().toLowerCase();
   if (q) {
     items = items.filter(
@@ -89,9 +100,10 @@ function md_renderProducts() {
   }
 
   if (items.length === 0) {
-    grid.innerHTML = q
-      ? `<p class="empty-note">No items match "${MD_SEARCH_QUERY}". Try a different search.</p>`
-      : `<p class="empty-note">No items in this collection yet.</p>`;
+    let msg = `No items in this collection yet.`;
+    if (q) msg = `No items match "${MD_SEARCH_QUERY}". Try a different search.`;
+    else if (MD_ACTIVE_SIZE !== "all") msg = `No items currently in stock in size ${MD_ACTIVE_SIZE}.`;
+    grid.innerHTML = `<p class="empty-note">${msg}</p>`;
     return;
   }
 
@@ -119,11 +131,15 @@ function md_productCardHtml(p) {
   const colorOptions = md_parseColors(p.available_colors);
   const showColor = colorOptions.length > 0 && !isCollection;
 
-  // For sized items, the "current" size defaults to whichever the shopper
-  // already had selected, or the first size that still has stock.
+  // For sized items, the "current" size defaults to: the active Size
+  // filter (if the shopper filtered to e.g. "Large" and this product has
+  // it in stock), else whatever the shopper already had selected, else
+  // the first size that still has stock.
   const prevSel = document.getElementById(sizeId)?.value;
   const defaultSize =
-    prevSel && sizeStock[prevSel] > 0
+    MD_ACTIVE_SIZE !== "all" && (Number(sizeStock[MD_ACTIVE_SIZE]) || 0) > 0
+      ? MD_ACTIVE_SIZE
+      : prevSel && sizeStock[prevSel] > 0
       ? prevSel
       : MD_SIZE_ORDER.find((s) => (Number(sizeStock[s]) || 0) > 0) || MD_SIZE_ORDER[0];
   const stockForSelectedSize = showSize ? Number(sizeStock[defaultSize]) || 0 : totalStock;
@@ -268,6 +284,19 @@ function md_initShopCategoryFilters() {
       row.querySelectorAll(".tag-btn").forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       MD_ACTIVE_CATEGORY = btn.dataset.category;
+      md_renderProducts();
+    });
+  });
+}
+
+function md_initShopSizeFilters() {
+  const row = document.getElementById("shopSizeFilters");
+  if (!row) return;
+  row.querySelectorAll(".tag-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      row.querySelectorAll(".tag-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      MD_ACTIVE_SIZE = btn.dataset.size;
       md_renderProducts();
     });
   });
@@ -441,6 +470,7 @@ document.addEventListener("DOMContentLoaded", () => {
   md_initShopSearch();
   md_initShopFilters();
   md_initShopCategoryFilters();
+  md_initShopSizeFilters();
   md_initShopGridDelegation();
   const form = document.getElementById("checkoutForm");
   if (form) {
