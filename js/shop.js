@@ -5,7 +5,6 @@
    between pages again.
    ========================================================= */
 let MD_ACTIVE_FILTER = "all";
-let MD_ACTIVE_CATEGORY = "all";
 let MD_SEARCH_QUERY = "";
 
 const MD_PAYMENT_INFO = {
@@ -74,11 +73,10 @@ function md_renderProducts() {
       ? MD_PRODUCTS_CACHE
       : MD_PRODUCTS_CACHE.filter((p) => p.museum_id === MD_ACTIVE_FILTER);
 
-  if (MD_ACTIVE_CATEGORY === "merchandise") {
-    items = items.filter((p) => p.for_sale !== false);
-  } else if (MD_ACTIVE_CATEGORY === "collection") {
-    items = items.filter((p) => p.for_sale === false);
-  }
+  // The Shop page is for buying things, so collection/display-only items
+  // (for_sale: false) never show here — they're still visible on each
+  // museum's own wing page, marked "Not for sale", for reference.
+  items = items.filter((p) => p.for_sale !== false);
 
   // "Size S/M/L/XL" filter: only show items that actually come in the
   // chosen size AND still have stock in it — e.g. picking "Large" hides
@@ -138,19 +136,6 @@ function md_initShopFilters() {
   });
 }
 
-function md_initShopCategoryFilters() {
-  const row = document.getElementById("shopCategoryFilters");
-  if (!row) return;
-  row.querySelectorAll(".tag-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      row.querySelectorAll(".tag-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      MD_ACTIVE_CATEGORY = btn.dataset.category;
-      md_renderProducts();
-    });
-  });
-}
-
 function md_initShopSizeFilters() {
   const row = document.getElementById("shopSizeFilters");
   if (!row) return;
@@ -177,7 +162,16 @@ function md_renderCheckoutSummary() {
   }
   document.getElementById("placeOrderBtn")?.removeAttribute("disabled");
   wrap.innerHTML =
-    cart.map((i) => `<div class="cart-total-row"><span>${md_cartItemLabel(i)} × ${i.qty}</span><span>₱${(i.price * i.qty).toFixed(2)}</span></div>`).join("") +
+    cart
+      .map(
+        (i) => `<div class="cart-total-row" style="align-items:flex-start;">
+          <span>${md_cartItemLabel(i)}<br>
+            <span style="opacity:.65;font-size:.82rem;">₱${i.price.toFixed(2)} each × ${i.qty}</span>
+          </span>
+          <span>₱${(i.price * i.qty).toFixed(2)}</span>
+        </div>`
+      )
+      .join("") +
     `<div class="cart-total-row" style="border-top:1px solid var(--line);padding-top:10px;margin-top:10px;font-weight:600;"><span>Total</span><span>₱${md_cartSubtotal().toFixed(2)}</span></div>`;
 }
 
@@ -331,7 +325,6 @@ document.addEventListener("DOMContentLoaded", () => {
   md_loadProducts();
   md_initShopSearch();
   md_initShopFilters();
-  md_initShopCategoryFilters();
   md_initShopSizeFilters();
   md_initShopGridDelegation();
   const form = document.getElementById("checkoutForm");
