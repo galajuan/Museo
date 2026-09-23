@@ -100,13 +100,14 @@
       grid.innerHTML = `<p class="empty-note">Connect Supabase to show shop items here. See README.md.</p>`;
       return;
     }
-    const { data, error } = await supabase.from("products").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(3);
-    if (error || !data || data.length === 0) {
+    const { data, error } = await supabase.from("products").select("*").eq("is_active", true).order("created_at", { ascending: false }).limit(12);
+    const merch = (data || []).filter((p) => p.for_sale !== false).slice(0, 3);
+    if (error || merch.length === 0) {
       grid.innerHTML = `<p class="empty-note">No products yet — add some from the Admin Dashboard.</p>`;
       return;
     }
-    MD_PRODUCTS_CACHE = data;
-    grid.innerHTML = data.map((p) => md_productCardHtml(p)).join("");
+    MD_PRODUCTS_CACHE = merch;
+    grid.innerHTML = merch.map((p) => md_productCardHtml(p)).join("");
     md_initGridDelegation("homeProductGrid");
   });
 </script>
