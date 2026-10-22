@@ -321,6 +321,53 @@ async function md_placeOrder(e) {
   window.location.href = "receipt.html";
 }
 
+/* ---------------- Checkout auto-fill ----------------
+   Logged-in customers don't have to retype their details: name, email and
+   phone come from their account, and the delivery address from their most
+   recent delivery order. Every field stays fully editable, and anything the
+   customer has already typed is never overwritten. */
+async function md_prefillCheckout() {
+  const form = document.getElementById("checkoutForm");
+  if (!form || typeof md_getSession !== "function") return;
+  try {
+    const session = await md_getSession();
+    if (!session) return;
+    const profile = await md_getProfile();
+
+    const fill = (id, value) => {
+      const el = document.getElementById(id);
+      if (!el || !value || el.dataset.touched === "1" || el.value.trim()) return;
+      el.value = value;
+      el.dataset.autofilled = "1";
+    };
+    fill("checkoutName", (profile && profile.full_name) || session.user.user_metadata?.full_name || "");
+    fill("checkoutEmail", (profile && profile.email) || session.user.email || "");
+    fill("checkoutPhone", (profile && profile.phone) || "");
+
+    const { data: last } = await supabase
+      .from("orders")
+      .select("delivery_address")
+      .eq("user_id", session.user.id)
+      .not("delivery_address", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    if (last && last[0]) fill("checkoutAddress", last[0].delivery_address);
+
+    const note = document.getElementById("checkoutAutofillNote");
+    if (note) note.style.display = "block";
+  } catch (e) {
+    console.error("checkout prefill failed", e);
+  }
+}
+
+function md_trackCheckoutEdits() {
+  ["checkoutName", "checkoutEmail", "checkoutPhone", "checkoutAddress"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("input", (e) => {
+      e.target.dataset.touched = "1";
+    });
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   md_loadProducts();
   md_initShopSearch();
@@ -334,5 +381,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('input[name="fulfillment"]').forEach((r) => r.addEventListener("change", md_updateFulfillmentUI));
     md_updatePaymentDetail();
     md_updateFulfillmentUI();
+    md_trackCheckoutEdits();
+    md_prefillCheckout();
+    // if the user logs in/out in another tab, refresh the auto-fill
+    supabase.auth.onAuthStateChange((evt) => { if (evt === "SIGNED_IN") md_prefillCheckout(); });
   }
 });
