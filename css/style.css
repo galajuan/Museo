@@ -440,3 +440,25 @@ th{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:u
 .acct-badge.customer{background:var(--parchment,#f7f4ec);color:var(--ink-soft,#2A2A30);}
 .acct-badge.customer::before{background:var(--ink-soft,#2A2A30);}
 .order-meta-line{font-family:var(--mono);font-size:.75rem;opacity:.7;margin-bottom:8px;}
+
+/* ---------- Notifications bell ---------- */
+.notif-wrap{position:relative;}
+.notif-btn{background:none;color:var(--paper);cursor:pointer;position:relative;}
+.notif-badge{position:absolute;top:-7px;right:-7px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--brass);color:var(--ink);font-size:.62rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.notif-panel{display:none;position:absolute;right:0;top:calc(100% + 10px);width:340px;max-width:calc(100vw - 24px);background:var(--paper);color:var(--ink);border:1px solid var(--line);box-shadow:var(--shadow);z-index:120;}
+.notif-panel.open{display:block;}
+.notif-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--ink);color:var(--paper);}
+.notif-head h6{margin:0;font-size:.95rem;}
+.notif-head button{background:none;border:none;color:var(--brass-light);font-size:.72rem;font-family:var(--mono);cursor:pointer;margin-left:10px;}
+.notif-list{max-height:380px;overflow-y:auto;}
+.notif-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;}
+.notif-item:hover{background:rgba(176,141,87,.1);}
+.notif-item.unread{background:rgba(176,141,87,.16);border-left:3px solid var(--brass);}
+.notif-ico{font-size:1.2rem;line-height:1.3;}
+.notif-body{display:flex;flex-direction:column;gap:2px;font-size:.82rem;}
+.notif-body strong{font-size:.86rem;}
+.notif-body em{font-family:var(--mono);font-size:.68rem;opacity:.6;font-style:normal;}
+.notif-empty{padding:22px 16px;font-size:.84rem;opacity:.7;margin:0;}
+@media (max-width:860px){
+  .notif-panel{position:fixed;right:12px;left:12px;top:64px;width:auto;max-width:none;}
+}
