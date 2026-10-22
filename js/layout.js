@@ -7,7 +7,7 @@
 const MD_NAV = [
   { key: "home", label: "Home", href: "index.html" },
   { key: "dabawenyo", label: "Museo Dabawenyo", href: "museo-dabawenyo.html" },
-  { key: "dbone", label: "D'Bone Collection", href: "dbone-collection.html" },
+  { key: "dbone", label: "D'Bone Collector", href: "dbone-collection.html" },
   { key: "national", label: "National Museum", href: "national-museum.html" },
   { key: "shop", label: "Shop", href: "shop.html" },
 ];
