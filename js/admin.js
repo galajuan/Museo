@@ -23,8 +23,6 @@ async function md_initAdmin() {
   MD_ADMIN_PROFILE = await md_requireAuth({ adminOnly: true });
   if (!MD_ADMIN_PROFILE) return;
 
-  document.getElementById("adminWelcome").textContent = `Signed in as ${MD_ADMIN_PROFILE.full_name || MD_ADMIN_PROFILE.email} (admin)`;
-
   document.querySelectorAll(".admin-tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       document.querySelectorAll(".admin-tab").forEach((t) => t.classList.remove("active"));
