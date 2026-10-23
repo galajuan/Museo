@@ -517,7 +517,7 @@ async function md_deleteEvent(id) {
 
 /* ---------------- ORDERS ---------------- */
 let MD_ADMIN_ORDERS_CACHE = [];
-const MD_ORDER_STATUSES = ["pending", "paid", "preparing", "ready", "completed", "cancelled"];
+const MD_ORDER_STATUSES = ["pending", "accepted", "paid", "preparing", "ready", "out_for_delivery", "completed", "declined", "cancelled"];
 
 async function md_loadAdminOrders() {
   const tbody = document.getElementById("ordersTableBody");
@@ -555,7 +555,7 @@ function md_renderAdminOrders() {
       <td>₱${Number(o.total).toFixed(2)}</td>
       <td onclick="event.stopPropagation()">
         <select onchange="md_updateOrderStatus('${o.id}', this.value)">
-          ${MD_ORDER_STATUSES.map((s) => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s}</option>`).join("")}
+          ${MD_ORDER_STATUSES.map((s) => `<option value="${s}" ${s === o.status ? "selected" : ""}>${s.replace(/_/g, " ")}</option>`).join("")}
         </select>
       </td>
       <td onclick="event.stopPropagation()"><a href="receipt.html?order_no=${o.order_no}" target="_blank" class="btn-sm-outline" style="text-decoration:none;">Receipt</a></td>
@@ -602,8 +602,8 @@ async function md_updateOrderStatus(id, status) {
     return;
   }
 
-  // Cancelling an order puts its items' stock back — real-time, and only once.
-  if (status === "cancelled") {
+  // Cancelling or declining an order puts its items' stock back — real-time, and only once.
+  if (status === "cancelled" || status === "declined") {
     const order = MD_ADMIN_ORDERS_CACHE.find((o) => o.id === id);
     if (order && !order.stock_restored) {
       const items = order.order_items || [];
