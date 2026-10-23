@@ -5,7 +5,12 @@
      • a new product is added to the shop
      • a new event / exhibit is posted
      • the status of THEIR order changes (paid, preparing, ready…)
-   Admins additionally get notified when a NEW order comes in.
+   Admins additionally get notified when:
+     • a NEW account is created
+     • a NEW purchase (order) is placed
+     • a product's stock goes DOWN (with low / out-of-stock warnings)
+   Customers are told when their order is accepted, declined, ready to
+   claim, or out for delivery.
 
    Notifications are saved in localStorage (per account), so they
    survive page changes, and anything that happened while the visitor
@@ -13,14 +18,33 @@
    Requires: supabase-client.js, auth.js, cart.js (md_toast), layout.js
    ========================================================= */
 const MD_NOTIF_MAX = 30;
-const MD_ORDER_STATUS_TEXT = {
-  pending: "is pending — we're waiting for confirmation.",
-  paid: "payment was confirmed. Thank you!",
-  preparing: "is now being prepared.",
-  ready: "is ready for pickup / on its way!",
-  completed: "has been completed. Enjoy your keepsake!",
-  cancelled: "was cancelled.",
+const MD_LOW_STOCK_LEVEL = 5;
+const MD_ORDER_STATUS_TITLE = {
+  pending: "pending",
+  accepted: "accepted",
+  declined: "declined",
+  paid: "paid",
+  preparing: "being prepared",
+  ready: "ready to claim",
+  out_for_delivery: "out for delivery",
+  completed: "completed",
+  cancelled: "cancelled",
 };
+function md_orderStatusText(status, fulfillment) {
+  const pickup = fulfillment !== "online";
+  switch (status) {
+    case "pending": return "is pending — we're waiting for confirmation.";
+    case "accepted": return "was accepted by the shop. We'll start working on it!";
+    case "declined": return "was declined by the admin. Please contact the museum shop for details.";
+    case "paid": return "payment was confirmed. Thank you!";
+    case "preparing": return "is now being prepared.";
+    case "ready": return pickup ? "is ready to claim! Please pick it up at the museum shop." : "is packed and ready — it will be out for delivery soon.";
+    case "out_for_delivery": return "is out for delivery. Please keep your phone nearby!";
+    case "completed": return "has been completed. Enjoy your keepsake!";
+    case "cancelled": return "was cancelled.";
+    default: return "was updated.";
+  }
+}
 
 let MD_NOTIF_UID = "guest";
 let MD_NOTIF_IS_ADMIN = false;
@@ -76,7 +100,7 @@ function md_renderNotifs() {
   badge.textContent = unread > 9 ? "9+" : unread;
   badge.style.display = unread ? "flex" : "none";
 
-  const icons = { product: "🛍️", event: "🎟️", order: "📦" };
+  const icons = { product: "🛍️", event: "🎟️", order: "📦", account: "👤", stock: "⚠️" };
   list.innerHTML = MD_NOTIF_STATE.items.length
     ? MD_NOTIF_STATE.items
         .map(
@@ -102,7 +126,8 @@ function md_notifMarkAllRead() {
 
 function md_renderNotifShell() {
   const cartBtn = document.getElementById("cartLauncherHeader");
-  if (!cartBtn || document.getElementById("notifWrap")) return;
+  const adminSlot = document.getElementById("adminNotifSlot"); // admin.html has no site header
+  if ((!cartBtn && !adminSlot) || document.getElementById("notifWrap")) return;
   const wrap = document.createElement("div");
   wrap.id = "notifWrap";
   wrap.className = "notif-wrap";
@@ -120,7 +145,12 @@ function md_renderNotifShell() {
       </div>
       <div id="notifList" class="notif-list"></div>
     </div>`;
-  cartBtn.parentElement.insertBefore(wrap, cartBtn);
+  if (adminSlot) {
+    wrap.classList.add("admin-bell");
+    adminSlot.appendChild(wrap);
+  } else {
+    cartBtn.parentElement.insertBefore(wrap, cartBtn);
+  }
 
   const panel = wrap.querySelector("#notifPanel");
   wrap.querySelector("#notifBtn").addEventListener("click", (e) => {
@@ -185,19 +215,65 @@ function md_notifyOrderStatus(o, silent) {
   md_pushNotif({
     id: `order:${o.id}:${o.status}`,
     type: "order",
-    title: `Order ${o.order_no} — ${o.status}`,
-    text: `Your order ${MD_ORDER_STATUS_TEXT[o.status] || "was updated."}`,
+    title: `Order ${o.order_no} — ${MD_ORDER_STATUS_TITLE[o.status] || o.status}`,
+    text: `Your order ${md_orderStatusText(o.status, o.fulfillment)}`,
     href: `receipt.html?order_no=${encodeURIComponent(o.order_no)}`,
     silent,
   });
 }
-function md_notifyAdminNewOrder(o) {
+function md_notifyAdminNewOrder(o, silent) {
   if (!o) return;
   md_pushNotif({
     id: `adminorder:${o.id}`,
     type: "order",
-    title: "New order received",
+    title: "New purchase received",
     text: `${o.order_no} from ${o.guest_name || "a customer"} — ₱${Number(o.total || 0).toFixed(2)}`,
+    href: "admin.html",
+    ts: o.created_at ? new Date(o.created_at).getTime() : Date.now(),
+    silent,
+  });
+}
+
+function md_notifyAdminNewAccount(a, silent) {
+  if (!a) return;
+  md_pushNotif({
+    id: `adminaccount:${a.id}`,
+    type: "account",
+    title: "New account created",
+    text: `${a.full_name || "Someone"}${a.email ? " (" + a.email + ")" : ""} just signed up.`,
+    href: "admin.html",
+    ts: a.created_at ? new Date(a.created_at).getTime() : Date.now(),
+    silent,
+  });
+}
+
+/* Stock watcher (admin): realtime UPDATE payloads don't carry the old row,
+   so we remember each product's last known stock and compare. */
+let MD_STOCK_SEEN = {};
+function md_stockSnapshot(p) {
+  return { name: p.name, total: Number(p.stock) || 0, sizes: { ...(p.size_stock || {}) } };
+}
+async function md_stockInit() {
+  const { data } = await supabase.from("products").select("id, name, stock, size_stock");
+  (data || []).forEach((p) => (MD_STOCK_SEEN[p.id] = md_stockSnapshot(p)));
+}
+function md_notifyStockChange(p) {
+  if (!p) return;
+  const prev = MD_STOCK_SEEN[p.id];
+  const cur = md_stockSnapshot(p);
+  MD_STOCK_SEEN[p.id] = cur;
+  if (!prev || cur.total >= prev.total) return; // only react to stock going DOWN
+  // Which size dropped (if the product is sold by size)?
+  const sizes = Object.keys(cur.sizes).filter((k) => (Number(cur.sizes[k]) || 0) < (Number(prev.sizes[k]) || 0));
+  const sizeTxt = sizes.length ? ` (Size ${sizes.join(", ")})` : "";
+  let level = "";
+  if (cur.total <= 0) level = " — OUT OF STOCK!";
+  else if (cur.total <= MD_LOW_STOCK_LEVEL) level = " — running low!";
+  md_pushNotif({
+    id: `stock:${p.id}:${Date.now()}`,
+    type: "stock",
+    title: cur.total <= 0 ? "Product out of stock" : "Stock decreased",
+    text: `"${cur.name}"${sizeTxt} stock went ${prev.total} → ${cur.total}${level}`,
     href: "admin.html",
   });
 }
@@ -217,6 +293,18 @@ async function md_notifCatchUp() {
     (ev.data || []).forEach((e) => md_notifyEvent(e, true)); // errors (e.g. no created_at column) are ignored
   }
   await md_notifPollOrders(true);
+
+  if (MD_NOTIF_IS_ADMIN) {
+    await md_stockInit();
+    if (since) {
+      const [ord, acc] = await Promise.all([
+        supabase.from("orders").select("id, order_no, guest_name, total, created_at").gt("created_at", since).order("created_at", { ascending: false }).limit(10),
+        supabase.from("profiles").select("id, full_name, email, created_at").gt("created_at", since).order("created_at", { ascending: false }).limit(10),
+      ]);
+      (ord.data || []).forEach((o) => md_notifyAdminNewOrder(o, true));
+      (acc.data || []).forEach((a) => md_notifyAdminNewAccount(a, true));
+    }
+  }
 }
 
 /* Orders: compare each of the user's orders against the last status we saw. */
@@ -225,7 +313,7 @@ async function md_notifPollOrders(silent) {
   const first = !MD_NOTIF_STATE.ordersInit; // true only the very first time for this account
   const { data } = await supabase
     .from("orders")
-    .select("id, order_no, status, created_at")
+    .select("id, order_no, status, fulfillment, created_at")
     .eq("user_id", MD_NOTIF_UID)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -260,6 +348,8 @@ function md_notifSubscribeRealtime() {
     supabase
       .channel("notif-admin-orders")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders" }, (pl) => md_notifyAdminNewOrder(pl.new))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "profiles" }, (pl) => md_notifyAdminNewAccount(pl.new))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "products" }, (pl) => md_notifyStockChange(pl.new))
       .subscribe();
   }
 }
