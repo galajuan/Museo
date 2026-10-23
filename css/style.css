@@ -390,6 +390,9 @@ th{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:u
 .status-paid{background:#d9ecdf;color:#1f6b3c;}
 .status-preparing{background:#dbe6f3;color:#1f4b7a;}
 .status-ready{background:#e4d9f3;color:#5a2f9c;}
+.status-accepted{background:#d9ecdf;color:#1f6b3c;}
+.status-out_for_delivery{background:#dbe6f3;color:#1f4b7a;}
+.status-declined{background:#f3d9d9;color:#8a1f1f;}
 .status-completed{background:#d6d6d6;color:#333;}
 .status-cancelled{background:#f3d9d9;color:#8a1f1f;}
 
@@ -462,3 +465,5 @@ th{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:u
 @media (max-width:860px){
   .notif-panel{position:fixed;right:12px;left:12px;top:64px;width:auto;max-width:none;}
 }
+
+.admin-bell .notif-btn{color:var(--ink);background:var(--paper);border:1px solid var(--line);}
