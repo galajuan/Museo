@@ -54,7 +54,7 @@ function md_renderReceipt(order, items) {
       </div>
 
       <div class="receipt-status">
-        Status: <span class="status-pill status-${order.status}">${order.status}</span>
+        Status: <span class="status-pill status-${order.status}">${String(order.status).replace(/_/g, " ")}</span>
       </div>
 
       <p class="receipt-footnote">Thank you for supporting Davao City's museums. Present this receipt (digital or printed)
