@@ -52,7 +52,7 @@
         <td>${new Date(o.created_at).toLocaleDateString("en-PH")}</td>
         <td>${o.fulfillment === "online" ? "Delivery" : "Pickup"}</td>
         <td>₱${Number(o.total).toFixed(2)}</td>
-        <td><span class="status-pill status-${o.status}">${o.status}</span></td>
+        <td><span class="status-pill status-${o.status}">${String(o.status).replace(/_/g, " ")}</span></td>
         <td><a href="receipt.html?order_no=${o.order_no}" style="color:var(--brass);">View</a></td>
       </tr>`).join("");
   });
