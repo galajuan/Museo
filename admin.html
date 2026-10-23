@@ -7,12 +7,13 @@
 <link rel="stylesheet" href="css/style.css">
 <style>
   .hero-admin .breadcrumb{font-size:1.15rem;opacity:.95;margin-bottom:20px;}
+  .hero-admin .container,.admin-wide{max-width:1760px;width:100%;padding-left:40px;padding-right:40px;}
   .admin-tabs{display:flex;gap:10px;margin-bottom:30px;flex-wrap:wrap;}
   .admin-tab{padding:10px 18px;border:1px solid var(--line);background:var(--paper);font-family:var(--mono);font-size:.82rem;}
   .admin-tab.active{background:var(--ink);color:var(--paper);border-color:var(--ink);}
   .admin-panel{display:none;}
   .admin-panel.first{display:block;}
-  .crud-layout{display:grid;grid-template-columns:1fr 1.4fr;gap:32px;}
+  .crud-layout{display:grid;grid-template-columns:minmax(340px,1fr) 2.4fr;gap:40px;}
   @media (max-width:960px){.crud-layout{grid-template-columns:1fr;}}
   .table-wrap{overflow-x:auto;}
   .check-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:16px;}
@@ -29,7 +30,7 @@
 </div>
 
 <section>
-  <div class="container">
+  <div class="container admin-wide">
     <div class="admin-tabs">
       <button class="admin-tab active" data-panel="panelProducts">Products</button>
       <button class="admin-tab" data-panel="panelEvents">Events</button>
