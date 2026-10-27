@@ -166,7 +166,7 @@ function md_renderCheckoutSummary() {
       .map(
         (i) => `<div class="cart-total-row" style="align-items:flex-start;">
           <span>${md_cartItemLabel(i)}<br>
-            <span style="opacity:.65;font-size:.82rem;">₱${i.price.toFixed(2)} each × ${i.qty}</span>
+            <span style="opacity:.65;font-size:.92rem;">₱${i.price.toFixed(2)} each × ${i.qty}</span>
           </span>
           <span>₱${(i.price * i.qty).toFixed(2)}</span>
         </div>`
