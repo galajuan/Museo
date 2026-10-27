@@ -147,7 +147,7 @@ function md_renderAdminProducts() {
     <tr>
       <td>${md_escapeHtml(p.name)}</td>
       <td>${MD_MUSEUM_LABEL[p.museum_id] || "—"}</td>
-      <td><span class="product-category ${isCollection ? "collection" : "merch"}" style="font-size:.68rem;">${isCollection ? "Collection" : "Merchandise"}</span></td>
+      <td><span class="product-category ${isCollection ? "collection" : "merch"}" style="font-size:.82rem;">${isCollection ? "Collection" : "Merchandise"}</span></td>
       <td>₱${Number(p.price).toFixed(2)}</td>
       <td>${md_colorCellHtml(p)}</td>
       <td>${md_stockCellHtml(p)}</td>
@@ -547,9 +547,9 @@ function md_renderAdminOrders() {
     <tr class="order-row-toggle" onclick="md_toggleOrderDetails('${o.id}')">
       <td class="order-toggle-arrow" id="arrow-${o.id}">▸</td>
       <td>${o.order_no}</td>
-      <td>${o.guest_name}<br><span style="opacity:.6;font-size:.78rem;">${o.guest_email}</span></td>
+      <td>${o.guest_name}<br><span style="opacity:.6;font-size:.9rem;">${o.guest_email}</span></td>
       <td>${o.fulfillment === "online" ? "Delivery" : "Pickup"}</td>
-      <td>${(o.payment_method || "").toUpperCase()}${o.payment_reference ? `<br><span style="opacity:.6;font-size:.78rem;">Ref: ${o.payment_reference}</span>` : ""}</td>
+      <td>${(o.payment_method || "").toUpperCase()}${o.payment_reference ? `<br><span style="opacity:.6;font-size:.9rem;">Ref: ${o.payment_reference}</span>` : ""}</td>
       <td>₱${Number(o.total).toFixed(2)}</td>
       <td onclick="event.stopPropagation()">
         <select onchange="md_updateOrderStatus('${o.id}', this.value)">
@@ -669,16 +669,16 @@ function md_renderAdminAccounts() {
     const isSelf = MD_ADMIN_PROFILE && a.id === MD_ADMIN_PROFILE.id;
     return `
     <tr>
-      <td>${a.full_name || "—"}${isSelf ? ` <span style="opacity:.5;font-size:.75rem;">(you)</span>` : ""}</td>
+      <td>${a.full_name || "—"}${isSelf ? ` <span style="opacity:.5;font-size:.88rem;">(you)</span>` : ""}</td>
       <td>${a.email}</td>
       <td>${a.phone || "—"}</td>
       <td><span class="acct-badge ${a.email_verified ? "verified" : "pending"}">${a.email_verified ? "Verified" : "Pending"}</span></td>
       <td><span class="acct-badge ${a.role === "admin" ? "admin" : "customer"}">${a.role}</span></td>
-      <td style="opacity:.75;font-size:.85rem;">${md_formatTimestamp(a.created_at)}</td>
+      <td style="opacity:.75;font-size:.95rem;">${md_formatTimestamp(a.created_at)}</td>
       <td>
         ${
           isSelf
-            ? `<span style="opacity:.5;font-size:.8rem;">—</span>`
+            ? `<span style="opacity:.5;font-size:.9rem;">—</span>`
             : `<button class="btn-sm-outline js-toggle-role" data-account-id="${a.id}" data-new-role="${a.role === "admin" ? "customer" : "admin"}">${a.role === "admin" ? "Make customer" : "Make admin"}</button>
                <button class="btn-sm-outline js-delete-account" data-account-id="${a.id}" style="margin-left:6px;color:#b42318;border-color:#b42318;">Delete</button>`
         }
