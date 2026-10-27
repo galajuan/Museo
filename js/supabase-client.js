@@ -26,7 +26,7 @@ function warnIfNotConfigured(containerSelector) {
   if (el) {
     const div = document.createElement("div");
     div.style.cssText =
-      "background:#7A3B2E;color:#F7F4EC;padding:12px 20px;font-family:'IBM Plex Mono',monospace;font-size:.78rem;text-align:center;";
+      "background:#7A3B2E;color:#F7F4EC;padding:12px 20px;font-family:'IBM Plex Mono',monospace;font-size:.9rem;text-align:center;";
     div.textContent =
       "⚠ Supabase not connected yet — add your Project URL & anon key in js/supabase-client.js";
     el.prepend(div);
