@@ -48,7 +48,7 @@ function md_renderFooter() {
     <div class="container footer-grid">
       <div>
         <h5>MuseoDavao</h5>
-        <p style="max-width:280px;font-size:.9rem;opacity:.8;">
+        <p style="max-width:340px;font-size:1rem;opacity:.85;">
           One portal to Davao City's three museums — Museo Dabawenyo, the D'Bone Collector Museum,
           and the National Museum of the Philippines–Davao. Plan your visit, follow current exhibits,
           and bring a piece of the collection home.
